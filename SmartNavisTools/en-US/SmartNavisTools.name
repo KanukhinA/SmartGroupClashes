@@ -1,0 +1,44 @@
+# Локализованные имена вкладки ленты, панели и кнопок
+$utf8
+
+DisplayName=
+NNAW Ribbon Local Name
+
+ID_SmartNavisToolsTab.DisplayName=
+Smart
+
+ID_SmartNavisToolsClashStatusButton.DisplayName=
+Статусы
+
+ID_SmartNavisToolsClashStatusButton.ToolTip=
+Импорт Clash Report XML: статусы, описание и утвердивший
+
+ID_SmartNavisToolsClashStatusButton.ExtendedToolTip=
+Загрузите отчёт коллизий в формате XML. Обновляются статусы Reviewed/Approved, описание из комментария и поле «Утвердил»
+
+ID_SmartNavisToolsClashTestsButton.DisplayName=
+Проверки
+
+ID_SmartNavisToolsClashTestsButton.ToolTip=
+Список проверок Clash Detective и их обновление
+
+ID_SmartNavisToolsClashTestsButton.ExtendedToolTip=
+Выберите проверки с помощью Ctrl или Shift и обновите их в Clash Detective
+
+ID_SmartNavisToolsSearchSetsProButton.DisplayName=
+Поисковые наборы PRO
+
+ID_SmartNavisToolsSearchSetsProButton.ToolTip=
+Пакетное добавление и замена условий в поисковых наборах
+
+ID_SmartNavisToolsSearchSetsProButton.ExtendedToolTip=
+Выберите поисковые наборы и добавьте или замените условия фильтрации. Доступны режимы обновления и создания копий
+
+ID_SmartNavisToolsClashDashboardButton.DisplayName=
+Статистика пересечений
+
+ID_SmartNavisToolsClashDashboardButton.ToolTip=
+Интерактивная статистика пересечений
+
+ID_SmartNavisToolsClashDashboardButton.ExtendedToolTip=
+Формирование HTML-отчета по коллизиям напрямую из Navisworks с фильтрацией и экспортом графиков в PNG

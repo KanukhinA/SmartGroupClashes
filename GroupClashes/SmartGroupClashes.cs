@@ -13,14 +13,14 @@ namespace SmartGroupClashes
     /// <summary>
     /// Обработчик команд ленты: открывает и скрывает панель <see cref="SmartGroupClashesPane"/>.
     /// </summary>
-    [Plugin("SmartGroupClashes", "SmartGroupClashes", DisplayName = "Группировать\nпересечения")]
+    [Plugin("SmartGroupClashes", "SmartGroupClashes", DisplayName = "Smart")]
     [Strings("SmartGroupClashes.name")]
     [RibbonLayout("SmartGroupClashes.xaml")]
     [RibbonTab("ID_SmartGroupClashesTab",
         DisplayName = "Группировка пересечений")]
     [Command("ID_SmartGroupClashesButton",
              Icon = "SmartGroupClashesIcon_Small.ico", LargeIcon = "SmartGroupClashesIcon_Large.ico",
-             DisplayName = "Группировать\nпересечения")]
+             DisplayName = "Smart")]
 
     internal class RibbonHandler : CommandHandlerPlugin
     {

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ApplicationPackage SchemaVersion="1.0" AutodeskProduct="AutoCAD" Name="SmartNavisTools" Description="Инструменты Navisworks: обновление статусов коллизий." AppVersion="1.0.12" FriendlyVersion="1.0.12" ProductType="Application" Icon="./Contents/2022/Images/SmartNavisToolsIcon_Small.ico" SupportedLocales="Enu" AppNameSpace="appstore.exchange.autodesk.com" Author="Kanukhin_A" ProductCode="{D7E2A4B1-3C5F-4A8E-9D0B-1E6F2A8C4D5E}" UpgradeCode="{E8F3B5C2-4D6A-5B9F-AE1C-2F7A3B9D5E6F}">
+	<CompanyDetails Name="Kanukhin_A" Url=" " Email=" " Phone=" " />
+	<Components Description="2022 parts">
+		<RuntimeRequirements OS="Win64" Platform="NAVMAN" SeriesMin="Nw19" SeriesMax="Nw19" />
+		<ComponentEntry AppName="SmartNavisTools" AppType="ManagedPlugin" Version="1.0.12" ModuleName="./Contents/2022/SmartNavisTools.dll" AppDescription="SmartNavisTools" />
+	</Components>
+	<Components Description="2026 parts">
+		<RuntimeRequirements OS="Win64" Platform="NAVMAN" SeriesMin="Nw23" SeriesMax="Nw23" />
+		<ComponentEntry AppName="SmartNavisTools" AppType="ManagedPlugin" Version="1.0.12" ModuleName="./Contents/2026/SmartNavisTools.dll" AppDescription="SmartNavisTools" />
+	</Components>
+</ApplicationPackage>

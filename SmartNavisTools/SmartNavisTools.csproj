@@ -1,0 +1,206 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="14.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{B1C2D3E4-F5A6-4789-B0C1-D2E3F4A5B6C7}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>SmartNavisTools</RootNamespace>
+    <AssemblyName>SmartNavisTools</AssemblyName>
+    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <TargetFrameworkProfile />
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == '2022Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <OutputPath>bin\2022Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE;Version2022</DefineConstants>
+    <DebugType>full</DebugType>
+    <PlatformTarget>x64</PlatformTarget>
+    <LangVersion>7.3</LangVersion>
+    <ErrorReport>prompt</ErrorReport>
+    <StartProgram>$(PROGRAMFILES)\Autodesk\Navisworks Manage 2022\Roamer.exe</StartProgram>
+    <StartAction>Program</StartAction>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == '2022Release|AnyCPU' ">
+    <OutputPath>bin\2022Release\</OutputPath>
+    <DefineConstants>TRACE;Version2022</DefineConstants>
+    <Optimize>true</Optimize>
+    <DebugType>pdbonly</DebugType>
+    <PlatformTarget>x64</PlatformTarget>
+    <LangVersion>7.3</LangVersion>
+    <ErrorReport>prompt</ErrorReport>
+    <StartProgram>$(PROGRAMFILES)\Autodesk\Navisworks Manage 2022\Roamer.exe</StartProgram>
+    <StartAction>Program</StartAction>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == '2026Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <OutputPath>bin\2026Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE;Version2026</DefineConstants>
+    <DebugType>full</DebugType>
+    <PlatformTarget>x64</PlatformTarget>
+    <LangVersion>7.3</LangVersion>
+    <ErrorReport>prompt</ErrorReport>
+    <StartProgram>$(PROGRAMFILES)\Autodesk\Navisworks Manage 2026\Roamer.exe</StartProgram>
+    <StartAction>Program</StartAction>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == '2026Release|AnyCPU' ">
+    <OutputPath>bin\2026Release\</OutputPath>
+    <DefineConstants>TRACE;Version2026</DefineConstants>
+    <Optimize>true</Optimize>
+    <DebugType>pdbonly</DebugType>
+    <PlatformTarget>x64</PlatformTarget>
+    <LangVersion>7.3</LangVersion>
+    <ErrorReport>prompt</ErrorReport>
+    <StartProgram>$(PROGRAMFILES)\Autodesk\Navisworks Manage 2026\Roamer.exe</StartProgram>
+    <StartAction>Program</StartAction>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Condition="'$(Configuration)' == '2022Debug' OR '$(Configuration)' == '2022Release'" Include="Autodesk.Navisworks.Api">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>$(ProgramW6432)\Autodesk\Navisworks Manage 2022\Autodesk.Navisworks.Api.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Condition="'$(Configuration)' == '2022Debug' OR '$(Configuration)' == '2022Release'" Include="Autodesk.Navisworks.Clash">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>$(ProgramW6432)\Autodesk\Navisworks Manage 2022\Autodesk.Navisworks.Clash.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Condition="'$(Configuration)' == '2026Debug' OR '$(Configuration)' == '2026Release'" Include="Autodesk.Navisworks.Api">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>$(ProgramW6432)\Autodesk\Navisworks Manage 2026\Autodesk.Navisworks.Api.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Condition="'$(Configuration)' == '2026Debug' OR '$(Configuration)' == '2026Release'" Include="Autodesk.Navisworks.Clash">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>$(ProgramW6432)\Autodesk\Navisworks Manage 2026\Autodesk.Navisworks.Clash.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="PresentationCore" />
+    <Reference Include="PresentationFramework" />
+    <Reference Include="WindowsBase" />
+    <Reference Include="WindowsFormsIntegration" />
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Web.Extensions" />
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Xaml" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Ribbon\SmartNavisTools.cs" />
+    <Compile Include="Common\PluginPaneShell.xaml.cs" />
+    <Compile Include="Common\PropertyCatalog.cs" />
+    <Compile Include="Common\PropertyCategoryAmbiguity.cs" />
+    <Compile Include="Common\SmartNavisToolsPaneHost.cs" />
+    <Compile Include="ClashStatus\ClashStatusPane.cs" />
+    <Compile Include="ClashStatus\ClashStatusView.cs" />
+    <Compile Include="ClashStatus\ClashStatusViewModel.cs" />
+    <Compile Include="ClashStatus\ClashStatusUpdaterLogic.cs" />
+    <Compile Include="ClashDetectiveTests\ClashDetectiveTestsPane.cs" />
+    <Compile Include="ClashDetectiveTests\ClashDetectiveTestsView.cs" />
+    <Compile Include="ClashDetectiveTests\ClashDetectiveTestsViewModel.cs" />
+    <Compile Include="ClashDetectiveTests\ClashDetectiveTestsLogic.cs" />
+    <Compile Include="ClashDetectiveTests\ClashNativeReportBridge.cs" />
+    <Compile Include="ClashDashboard\ClashDashboardPane.cs" />
+    <Compile Include="ClashDashboard\ClashDashboardControl.cs" />
+    <Compile Include="ClashDashboard\ClashDashboardView.cs" />
+    <Compile Include="ClashDashboard\ClashDashboardViewModel.cs" />
+    <Compile Include="Common\ViewModelBase.cs" />
+    <Compile Include="Common\RelayCommand.cs" />
+    <Compile Include="ClashDashboard\ClashDashboardLogic.cs" />
+    <Compile Include="ClashDashboard\ClashDashboardReportBuilder.cs" />
+    <Compile Include="ClashDashboard\ClashDashboardSettingsStore.cs" />
+    <Compile Include="ClashDashboard\ClashResultWalker.cs" />
+    <Compile Include="ClashDashboard\ClashDimensionResolver.cs" />
+    <Compile Include="SearchSetsPro\SearchSetsProPane.cs" />
+    <Compile Include="SearchSetsPro\SearchSetsProView.cs" />
+    <Compile Include="SearchSetsPro\SearchSetsProViewModel.cs" />
+    <Compile Include="SearchSetsPro\SearchSetsProLogic.cs" />
+    <Compile Include="SearchSetsPro\SearchConditionGroupHelper.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Images\ClashStatusIcon_Large.ico">
+      <Link>ClashStatusIcon_Large.ico</Link>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Images\ClashStatusIcon_Small.ico">
+      <Link>ClashStatusIcon_Small.ico</Link>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Images\ClashTestsIcon_Large.ico">
+      <Link>ClashTestsIcon_Large.ico</Link>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Images\ClashTestsIcon_Small.ico">
+      <Link>ClashTestsIcon_Small.ico</Link>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Images\SearchSetsProIcon_Large.ico">
+      <Link>SearchSetsProIcon_Large.ico</Link>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Images\SearchSetsProIcon_Small.ico">
+      <Link>SearchSetsProIcon_Small.ico</Link>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Images\ClashDashboardIcon_Large.ico">
+      <Link>ClashDashboardIcon_Large.ico</Link>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Images\ClashDashboardIcon_Small.ico">
+      <Link>ClashDashboardIcon_Small.ico</Link>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Images\SmartNavisToolsIcon_Large.ico">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Images\SmartNavisToolsIcon_Small.ico">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Images\SmartNavisToolsIcon_Large.ico">
+      <Link>SmartNavisToolsIcon_Large.ico</Link>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Images\SmartNavisToolsIcon_Small.ico">
+      <Link>SmartNavisToolsIcon_Small.ico</Link>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="PackageContents.xml">
+      <SubType>Designer</SubType>
+    </Content>
+    <Content Include="ClashDashboard\Reports\clash-dashboard.html">
+      <Link>Reports\clash-dashboard.html</Link>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="ClashDashboard\Reports\clash-dashboard.css">
+      <Link>Reports\clash-dashboard.css</Link>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="ClashDashboard\Reports\plotly.min.js">
+      <Link>Reports\plotly.min.js</Link>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="en-US\SmartNavisTools.name">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="en-US\SmartNavisTools.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="PostBuild.ps1" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <PropertyGroup>
+    <PostBuildEvent>powershell -ExecutionPolicy Unrestricted $(ProjectDir)PostBuild.ps1 -Configuration $(Configuration) -TargetName $(TargetName) -ProjectDir $(ProjectDir) -TargetPath $(TargetPath) -TargetDir $(TargetDir)</PostBuildEvent>
+  </PropertyGroup>
+</Project>

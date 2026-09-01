@@ -4,10 +4,27 @@
     [string]$Version = "",
     [string]$Manufacturer = "Kanukhin_A",
     [string]$ProductName = "SmartGroupClashes",
-    [string]$UpgradeCode = "B9C47E21-6F83-4D1A-A7E2-5C8F0E1D2A3B"
+    [string]$AssemblyFileName = "SmartGroupClashes",
+    [string]$BundleName = "",
+    [string]$UpgradeCode = "B9C47E21-6F83-4D1A-A7E2-5C8F0E1D2A3B",
+    [string]$StagingSubDir = "staging",
+    [string]$WxsFileName = "Product.generated.wxs",
+    [string]$IconFileName = "",
+    [switch]$RemoveLegacyGroupClashes,
+    [switch]$AllowSameVersionUpgrades
 )
 
 $ErrorActionPreference = "Stop"
+
+if ([string]::IsNullOrWhiteSpace($BundleName)) {
+    $BundleName = "$ProductName.bundle"
+}
+
+if ([string]::IsNullOrWhiteSpace($IconFileName)) {
+    $IconFileName = "${AssemblyFileName}Icon_Small.ico"
+}
+
+$assemblyDllName = "$AssemblyFileName.dll"
 
 function Get-SafeId([string]$value) {
     $id = ($value -replace "[^A-Za-z0-9_]", "_")
@@ -56,18 +73,18 @@ Write-Host "Каталог вывода MSI: $OutputDir"
 Write-Host "Версия пакета (WiX / имя файла, нормализовано под MSI): $Version"
 
 $releaseDirs = Get-ChildItem -Path $binDir -Directory |
-    Where-Object { $_.Name -match "^\d{4}Release$" -and (Test-Path (Join-Path $_.FullName "SmartGroupClashes.dll")) } |
+    Where-Object { $_.Name -match "^\d{4}Release$" -and (Test-Path (Join-Path $_.FullName $assemblyDllName)) } |
     Sort-Object Name
 
 if ($releaseDirs.Count -eq 0) {
-    throw "В каталоге «$binDir» нет ни одной папки вида «2024Release», «2026Release» и т.п. с файлом SmartGroupClashes.dll. Сначала соберите решение в Visual Studio в конфигурации Release для нужных версий Navisworks."
+    throw "В каталоге «$binDir» нет ни одной папки вида «2024Release», «2026Release» и т.п. с файлом $assemblyDllName. Сначала соберите решение в Visual Studio в конфигурации Release для нужных версий Navisworks."
 }
 
-$stagingRoot = Join-Path $PSScriptRoot "staging"
-$bundleName = "SmartGroupClashes.bundle"
+$stagingRoot = Join-Path $PSScriptRoot $StagingSubDir
+$bundleName = $BundleName
 $bundleRoot = Join-Path $stagingRoot $bundleName
 $bundleContentsRoot = Join-Path $bundleRoot "Contents"
-$wxsPath = Join-Path $PSScriptRoot "Product.generated.wxs"
+$wxsPath = Join-Path $PSScriptRoot $WxsFileName
 
 if (Test-Path $stagingRoot) { Remove-Item $stagingRoot -Recurse -Force }
 if (Test-Path $OutputDir) { Remove-Item $OutputDir -Recurse -Force }
@@ -83,23 +100,25 @@ foreach ($releaseDir in $releaseDirs) {
     Copy-Item (Join-Path $releaseDir.FullName "*") $dest -Recurse -Force
 }
 
-# Убрать из поставки устаревшие сборки с прежним именем (иначе в MSI попадут лишние DLL).
-Get-ChildItem -Path $bundleContentsRoot -Recurse -File -ErrorAction SilentlyContinue |
-    Where-Object { $_.Extension -ieq ".dll" -and $_.Name -like "GroupClashes*" } |
-    Remove-Item -Force -ErrorAction SilentlyContinue
-Get-ChildItem -Path $bundleContentsRoot -Recurse -File -ErrorAction SilentlyContinue |
-    Where-Object { $_.Name -like "GroupClashesIcon*.ico" } |
-    Remove-Item -Force -ErrorAction SilentlyContinue
+# Убрать из поставки устаревшие сборки с прежним именем (только SmartGroupClashes).
+if ($AssemblyFileName -eq "SmartGroupClashes") {
+    Get-ChildItem -Path $bundleContentsRoot -Recurse -File -ErrorAction SilentlyContinue |
+        Where-Object { $_.Extension -ieq ".dll" -and $_.Name -like "GroupClashes*" } |
+        Remove-Item -Force -ErrorAction SilentlyContinue
+    Get-ChildItem -Path $bundleContentsRoot -Recurse -File -ErrorAction SilentlyContinue |
+        Where-Object { $_.Name -like "GroupClashesIcon*.ico" } |
+        Remove-Item -Force -ErrorAction SilentlyContinue
+}
 
 foreach ($releaseDir in $releaseDirs) {
     $year = $releaseDir.Name.Substring(0, 4)
-    $dllPath = Join-Path (Join-Path $bundleContentsRoot $year) "SmartGroupClashes.dll"
+    $dllPath = Join-Path (Join-Path $bundleContentsRoot $year) $assemblyDllName
     if (-not (Test-Path -LiteralPath $dllPath)) {
-        throw "В составе bundle для года $year нет SmartGroupClashes.dll по пути: $dllPath. Соберите проект в конфигурации ${year}Release."
+        throw "В составе bundle для года $year нет $assemblyDllName по пути: $dllPath. Соберите проект в конфигурации ${year}Release."
     }
     $dllLen = (Get-Item -LiteralPath $dllPath).Length
     if ($dllLen -lt 1024) {
-        throw "Файл SmartGroupClashes.dll слишком мал ($dllLen байт) для года $year — похоже на ошибку сборки."
+        throw "Файл $assemblyDllName слишком мал ($dllLen байт) для года $year — похоже на ошибку сборки."
     }
 }
 
@@ -117,7 +136,7 @@ foreach ($d in $dllInCab | Sort-Object FullName) {
     Write-Host "  DLL: $($d.FullName) ($($d.Length) байт)"
 }
 
-$iconForArp = Get-ChildItem -Path $bundleRoot -Recurse -File -Filter "SmartGroupClashesIcon_Small.ico" -ErrorAction SilentlyContinue |
+$iconForArp = Get-ChildItem -Path $bundleRoot -Recurse -File -Filter $IconFileName -ErrorAction SilentlyContinue |
     Select-Object -First 1
 
 $relativeDirSet = New-Object System.Collections.Generic.HashSet[string]
@@ -169,13 +188,20 @@ if ($null -ne $iconForArp) {
     [void]$sb.AppendLine("    <Icon Id=`"ARPICO`" SourceFile=`"$iconEscaped`" />")
     [void]$sb.AppendLine("    <Property Id=`"ARPPRODUCTICON`" Value=`"ARPICO`" />")
 }
-[void]$sb.AppendLine("    <MajorUpgrade Schedule=`"afterInstallValidate`" DowngradeErrorMessage=`"Уже установлена более новая версия «[ProductName]». Удалите её в списке установленных приложений и повторите установку.`" />")
+if ($AllowSameVersionUpgrades) {
+    [void]$sb.AppendLine("    <MajorUpgrade Schedule=`"afterInstallValidate`" AllowSameVersionUpgrades=`"yes`" DowngradeErrorMessage=`"Уже установлена более новая версия «[ProductName]». Удалите её в списке установленных приложений и повторите установку.`" />")
+}
+else {
+    [void]$sb.AppendLine("    <MajorUpgrade Schedule=`"afterInstallValidate`" DowngradeErrorMessage=`"Уже установлена более новая версия «[ProductName]». Удалите её в списке установленных приложений и повторите установку.`" />")
+}
 [void]$sb.AppendLine("    <MediaTemplate EmbedCab=`"yes`" CompressionLevel=`"high`" />")
 [void]$sb.AppendLine("    <StandardDirectory Id=`"AppDataFolder`">")
 [void]$sb.AppendLine("      <Directory Id=`"DIR_AUTODESK`" Name=`"Autodesk`">")
 [void]$sb.AppendLine("        <Directory Id=`"DIR_APPLICATIONPLUGINS`" Name=`"ApplicationPlugins`">")
-[void]$sb.AppendLine("          <Directory Id=`"DIR_LEGACY_GROUPCLASHES_BUNDLE`" Name=`"GroupClashes.bundle`">")
-[void]$sb.AppendLine("          </Directory>")
+if ($RemoveLegacyGroupClashes) {
+    [void]$sb.AppendLine("          <Directory Id=`"DIR_LEGACY_GROUPCLASHES_BUNDLE`" Name=`"GroupClashes.bundle`">")
+    [void]$sb.AppendLine("          </Directory>")
+}
 [void]$sb.AppendLine("          <Directory Id=`"INSTALLFOLDER`" Name=`"$bundleName`">")
 
 function Append-Directories([string]$parentRelative, [int]$indentLevel) {
@@ -198,14 +224,18 @@ Append-Directories -parentRelative "" -indentLevel 12
 
 [void]$sb.AppendLine("    <Feature Id=`"MainFeature`" Title=`"Файлы плагина «$ProductName»`" Level=`"1`">")
 [void]$sb.AppendLine("      <ComponentGroupRef Id=`"CG_MainFiles`" />")
-[void]$sb.AppendLine("      <ComponentRef Id=`"CMP_RemoveLegacyGroupClashes`" />")
+if ($RemoveLegacyGroupClashes) {
+    [void]$sb.AppendLine("      <ComponentRef Id=`"CMP_RemoveLegacyGroupClashes`" />")
+}
 [void]$sb.AppendLine("    </Feature>")
 
-[void]$sb.AppendLine("    <Component Id=`"CMP_RemoveLegacyGroupClashes`" Directory=`"DIR_LEGACY_GROUPCLASHES_BUNDLE`" Guid=`"*`">")
-[void]$sb.AppendLine("      <RemoveFile Id=`"RMF_LegacyGroupClashesBundleFiles`" Name=`"*.*`" On=`"install`" />")
-[void]$sb.AppendLine("      <RemoveFolder Id=`"RMF_LegacyGroupClashesBundleFolder`" On=`"install`" />")
-[void]$sb.AppendLine("      <RegistryValue Root=`"HKCU`" Key=`"Software\\Kanukhin_A\\SmartGroupClashes`" Name=`"LegacyCleanup`" Type=`"integer`" Value=`"1`" KeyPath=`"yes`" />")
-[void]$sb.AppendLine("    </Component>")
+if ($RemoveLegacyGroupClashes) {
+    [void]$sb.AppendLine("    <Component Id=`"CMP_RemoveLegacyGroupClashes`" Directory=`"DIR_LEGACY_GROUPCLASHES_BUNDLE`" Guid=`"*`">")
+    [void]$sb.AppendLine("      <RemoveFile Id=`"RMF_LegacyGroupClashesBundleFiles`" Name=`"*.*`" On=`"install`" />")
+    [void]$sb.AppendLine("      <RemoveFolder Id=`"RMF_LegacyGroupClashesBundleFolder`" On=`"install`" />")
+    [void]$sb.AppendLine("      <RegistryValue Root=`"HKCU`" Key=`"Software\\Kanukhin_A\\SmartGroupClashes`" Name=`"LegacyCleanup`" Type=`"integer`" Value=`"1`" KeyPath=`"yes`" />")
+    [void]$sb.AppendLine("    </Component>")
+}
 
 [void]$sb.AppendLine("    <ComponentGroup Id=`"CG_MainFiles`">")
 $componentIndex = 1
@@ -240,7 +270,7 @@ try {
         dotnet tool install wix --version 4.* | Out-Null
     }
 
-    $msiPath = Join-Path $OutputDir "SmartGroupClashes-$Version.msi"
+    $msiPath = Join-Path $OutputDir "$ProductName-$Version.msi"
     Write-Host "Запуск WiX: dotnet tool run wix build ..."
     & dotnet tool run wix build $wxsPath -o $msiPath
     if ($LASTEXITCODE -ne 0) {

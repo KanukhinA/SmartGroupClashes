@@ -117,9 +117,64 @@ MSI использует стандартный механизм major upgrade �
 
 ## Структура репозитория
 
-- `GroupClashes/` — исходный код плагина, ресурсы, `PackageContents.xml`.
+- `GroupClashes/` — исходный код плагина SmartGroupClashes, ресурсы, `PackageContents.xml`.
+- `SmartNavisTools/` — отдельный плагин с собственным bundle и MSI (не зависит от SmartGroupClashes).
 - `Installer/` — сценарии и файлы для сборки MSI.
-- `Build-Msi.bat` — точка входа для сборки установщика.
+- `Build-Msi.bat` — сборка установщика SmartGroupClashes.
+- `Build-SmartNavisTools-Msi.bat` — сборка установщика SmartNavisTools.
+
+## SmartNavisTools
+
+Отдельный плагин для **Autodesk Navisworks Manage** с собственной вкладкой ленты **Smart** и отдельным MSI. Не связан с SmartGroupClashes: устанавливается и обновляется независимо.
+
+### Возможности
+
+- **Статусы** — импорт Clash Report XML и обновление статусов Reviewed/Approved, поля «Описание» (из `comments/comment/body`) и «Утвердил» (из `approvedby`) в Clash Detective.
+- **Дашборд** — интерактивный HTML-отчёт по пересечениям на Plotly.js: горизонтальные stacked bar графики по этажам и разделам, фильтрация и экспорт PNG.
+- Поддержка Navisworks **2022** и **2026** в одном MSI.
+- Установка в `%AppData%\Autodesk\ApplicationPlugins\SmartNavisTools.bundle`.
+
+### Установка
+
+1. Закройте Navisworks Manage.
+2. Запустите `SmartNavisTools-<версия>.msi` из `Installer/artifacts-smartnavistools`.
+3. Откройте Navisworks — на ленте появится вкладка **Smart** с кнопками **Статусы**, **Проверки**, **Поисковые наборы PRO** и **Дашборд**.
+
+### Сборка
+
+```powershell
+dotnet msbuild "SmartNavisTools\SmartNavisTools.csproj" /t:Build /p:Configuration=2022Release /p:Platform=AnyCPU
+dotnet msbuild "SmartNavisTools\SmartNavisTools.csproj" /t:Build /p:Configuration=2026Release /p:Platform=AnyCPU
+```
+
+MSI:
+
+```bat
+Build-SmartNavisTools-Msi.bat
+```
+
+После сборки `SmartNavisTools/PostBuild.ps1` копирует файлы в `%AppData%\Autodesk\ApplicationPlugins\SmartNavisTools.bundle`.
+
+### Структура исходников
+
+```
+SmartNavisTools/
+  Ribbon/                 — регистрация вкладки Smart и команд ленты
+  Common/                 — общие классы (каталог свойств)
+  ClashStatus/            — инструмент «Статусы» (импорт XML)
+  ClashDetectiveTests/    — инструмент «Проверки» (список и экспорт)
+  ClashDashboard/         — инструмент «Дашборд» (Plotly HTML-отчёт)
+    Reports/              — шаблон HTML, CSS и plotly.min.js
+  SearchSetsPro/          — инструмент «Поисковые наборы PRO»
+  en-US/                  — локализация ленты (xaml, name)
+  Images/                 — иконки плагина
+  Properties/             — AssemblyInfo
+  PackageContents.xml
+  PostBuild.ps1
+  SmartNavisTools.csproj
+```
+
+Каждая папка инструмента содержит связку `*Pane.cs` + `*Control.cs` + `*Logic.cs` (и вспомогательные классы только для этого инструмента).
 
 ## Источник и лицензия
 

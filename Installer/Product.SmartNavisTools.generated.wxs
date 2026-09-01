@@ -1,0 +1,152 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Package Name="SmartNavisTools" Manufacturer="Kanukhin_A" Version="1.0.12.0" UpgradeCode="E8F3B5C2-4D6A-5B9F-AE1C-2F7A3B9D5E6F" Language="1049" Scope="perUser" InstallerVersion="500" Compressed="yes">
+    <SummaryInformation Description="Установка плагина «SmartNavisTools» для Autodesk Navisworks Manage" />
+    <Icon Id="ARPICO" SourceFile="C:\Users\Kanuhin_A\source\Navisworks\SmartGroupClashes\Installer\staging-smartnavistools\SmartNavisTools.bundle\Contents\2022\SmartNavisToolsIcon_Small.ico" />
+    <Property Id="ARPPRODUCTICON" Value="ARPICO" />
+    <MajorUpgrade Schedule="afterInstallValidate" AllowSameVersionUpgrades="yes" DowngradeErrorMessage="Уже установлена более новая версия «[ProductName]». Удалите её в списке установленных приложений и повторите установку." />
+    <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
+    <StandardDirectory Id="AppDataFolder">
+      <Directory Id="DIR_AUTODESK" Name="Autodesk">
+        <Directory Id="DIR_APPLICATIONPLUGINS" Name="ApplicationPlugins">
+          <Directory Id="INSTALLFOLDER" Name="SmartNavisTools.bundle">
+            <Directory Id="DIR_Contents" Name="Contents">
+              <Directory Id="DIR_Contents_2022" Name="2022">
+                <Directory Id="DIR_Contents_2022_en_US" Name="en-US">
+                </Directory>
+                <Directory Id="DIR_Contents_2022_Images" Name="Images">
+                </Directory>
+                <Directory Id="DIR_Contents_2022_Reports" Name="Reports">
+                </Directory>
+              </Directory>
+              <Directory Id="DIR_Contents_2026" Name="2026">
+                <Directory Id="DIR_Contents_2026_en_US" Name="en-US">
+                </Directory>
+                <Directory Id="DIR_Contents_2026_Images" Name="Images">
+                </Directory>
+                <Directory Id="DIR_Contents_2026_Reports" Name="Reports">
+                </Directory>
+              </Directory>
+            </Directory>
+          </Directory>
+        </Directory>
+      </Directory>
+    </StandardDirectory>
+    <Feature Id="MainFeature" Title="Файлы плагина «SmartNavisTools»" Level="1">
+      <ComponentGroupRef Id="CG_MainFiles" />
+    </Feature>
+    <ComponentGroup Id="CG_MainFiles">
+      <Component Id="CMP_1" Directory="DIR_Contents_2022" Guid="*">
+        <File Id="FIL_1" Source="C:\Users\Kanuhin_A\source\Navisworks\SmartGroupClashes\Installer\staging-smartnavistools\SmartNavisTools.bundle\Contents\2022\ClashDashboardIcon_Large.ico" KeyPath="yes" />
+      </Component>
+      <Component Id="CMP_2" Directory="DIR_Contents_2022" Guid="*">
+        <File Id="FIL_2" Source="C:\Users\Kanuhin_A\source\Navisworks\SmartGroupClashes\Installer\staging-smartnavistools\SmartNavisTools.bundle\Contents\2022\ClashDashboardIcon_Small.ico" KeyPath="yes" />
+      </Component>
+      <Component Id="CMP_3" Directory="DIR_Contents_2022" Guid="*">
+        <File Id="FIL_3" Source="C:\Users\Kanuhin_A\source\Navisworks\SmartGroupClashes\Installer\staging-smartnavistools\SmartNavisTools.bundle\Contents\2022\ClashStatusIcon_Large.ico" KeyPath="yes" />
+      </Component>
+      <Component Id="CMP_4" Directory="DIR_Contents_2022" Guid="*">
+        <File Id="FIL_4" Source="C:\Users\Kanuhin_A\source\Navisworks\SmartGroupClashes\Installer\staging-smartnavistools\SmartNavisTools.bundle\Contents\2022\ClashStatusIcon_Small.ico" KeyPath="yes" />
+      </Component>
+      <Component Id="CMP_5" Directory="DIR_Contents_2022" Guid="*">
+        <File Id="FIL_5" Source="C:\Users\Kanuhin_A\source\Navisworks\SmartGroupClashes\Installer\staging-smartnavistools\SmartNavisTools.bundle\Contents\2022\ClashTestsIcon_Large.ico" KeyPath="yes" />
+      </Component>
+      <Component Id="CMP_6" Directory="DIR_Contents_2022" Guid="*">
+        <File Id="FIL_6" Source="C:\Users\Kanuhin_A\source\Navisworks\SmartGroupClashes\Installer\staging-smartnavistools\SmartNavisTools.bundle\Contents\2022\ClashTestsIcon_Small.ico" KeyPath="yes" />
+      </Component>
+      <Component Id="CMP_7" Directory="DIR_Contents_2022_en_US" Guid="*">
+        <File Id="FIL_7" Source="C:\Users\Kanuhin_A\source\Navisworks\SmartGroupClashes\Installer\staging-smartnavistools\SmartNavisTools.bundle\Contents\2022\en-US\SmartNavisTools.name" KeyPath="yes" />
+      </Component>
+      <Component Id="CMP_8" Directory="DIR_Contents_2022_en_US" Guid="*">
+        <File Id="FIL_8" Source="C:\Users\Kanuhin_A\source\Navisworks\SmartGroupClashes\Installer\staging-smartnavistools\SmartNavisTools.bundle\Contents\2022\en-US\SmartNavisTools.xaml" KeyPath="yes" />
+      </Component>
+      <Component Id="CMP_9" Directory="DIR_Contents_2022_Images" Guid="*">
+        <File Id="FIL_9" Source="C:\Users\Kanuhin_A\source\Navisworks\SmartGroupClashes\Installer\staging-smartnavistools\SmartNavisTools.bundle\Contents\2022\Images\SmartNavisToolsIcon_Large.ico" KeyPath="yes" />
+      </Component>
+      <Component Id="CMP_10" Directory="DIR_Contents_2022_Images" Guid="*">
+        <File Id="FIL_10" Source="C:\Users\Kanuhin_A\source\Navisworks\SmartGroupClashes\Installer\staging-smartnavistools\SmartNavisTools.bundle\Contents\2022\Images\SmartNavisToolsIcon_Small.ico" KeyPath="yes" />
+      </Component>
+      <Component Id="CMP_11" Directory="DIR_Contents_2022_Reports" Guid="*">
+        <File Id="FIL_11" Source="C:\Users\Kanuhin_A\source\Navisworks\SmartGroupClashes\Installer\staging-smartnavistools\SmartNavisTools.bundle\Contents\2022\Reports\clash-dashboard.css" KeyPath="yes" />
+      </Component>
+      <Component Id="CMP_12" Directory="DIR_Contents_2022_Reports" Guid="*">
+        <File Id="FIL_12" Source="C:\Users\Kanuhin_A\source\Navisworks\SmartGroupClashes\Installer\staging-smartnavistools\SmartNavisTools.bundle\Contents\2022\Reports\clash-dashboard.html" KeyPath="yes" />
+      </Component>
+      <Component Id="CMP_13" Directory="DIR_Contents_2022_Reports" Guid="*">
+        <File Id="FIL_13" Source="C:\Users\Kanuhin_A\source\Navisworks\SmartGroupClashes\Installer\staging-smartnavistools\SmartNavisTools.bundle\Contents\2022\Reports\plotly.min.js" KeyPath="yes" />
+      </Component>
+      <Component Id="CMP_14" Directory="DIR_Contents_2022" Guid="*">
+        <File Id="FIL_14" Source="C:\Users\Kanuhin_A\source\Navisworks\SmartGroupClashes\Installer\staging-smartnavistools\SmartNavisTools.bundle\Contents\2022\SearchSetsProIcon_Large.ico" KeyPath="yes" />
+      </Component>
+      <Component Id="CMP_15" Directory="DIR_Contents_2022" Guid="*">
+        <File Id="FIL_15" Source="C:\Users\Kanuhin_A\source\Navisworks\SmartGroupClashes\Installer\staging-smartnavistools\SmartNavisTools.bundle\Contents\2022\SearchSetsProIcon_Small.ico" KeyPath="yes" />
+      </Component>
+      <Component Id="CMP_16" Directory="DIR_Contents_2022" Guid="*">
+        <File Id="FIL_16" Source="C:\Users\Kanuhin_A\source\Navisworks\SmartGroupClashes\Installer\staging-smartnavistools\SmartNavisTools.bundle\Contents\2022\SmartNavisTools.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="CMP_17" Directory="DIR_Contents_2022" Guid="*">
+        <File Id="FIL_17" Source="C:\Users\Kanuhin_A\source\Navisworks\SmartGroupClashes\Installer\staging-smartnavistools\SmartNavisTools.bundle\Contents\2022\SmartNavisToolsIcon_Large.ico" KeyPath="yes" />
+      </Component>
+      <Component Id="CMP_18" Directory="DIR_Contents_2022" Guid="*">
+        <File Id="FIL_18" Source="C:\Users\Kanuhin_A\source\Navisworks\SmartGroupClashes\Installer\staging-smartnavistools\SmartNavisTools.bundle\Contents\2022\SmartNavisToolsIcon_Small.ico" KeyPath="yes" />
+      </Component>
+      <Component Id="CMP_19" Directory="DIR_Contents_2026" Guid="*">
+        <File Id="FIL_19" Source="C:\Users\Kanuhin_A\source\Navisworks\SmartGroupClashes\Installer\staging-smartnavistools\SmartNavisTools.bundle\Contents\2026\ClashDashboardIcon_Large.ico" KeyPath="yes" />
+      </Component>
+      <Component Id="CMP_20" Directory="DIR_Contents_2026" Guid="*">
+        <File Id="FIL_20" Source="C:\Users\Kanuhin_A\source\Navisworks\SmartGroupClashes\Installer\staging-smartnavistools\SmartNavisTools.bundle\Contents\2026\ClashDashboardIcon_Small.ico" KeyPath="yes" />
+      </Component>
+      <Component Id="CMP_21" Directory="DIR_Contents_2026" Guid="*">
+        <File Id="FIL_21" Source="C:\Users\Kanuhin_A\source\Navisworks\SmartGroupClashes\Installer\staging-smartnavistools\SmartNavisTools.bundle\Contents\2026\ClashStatusIcon_Large.ico" KeyPath="yes" />
+      </Component>
+      <Component Id="CMP_22" Directory="DIR_Contents_2026" Guid="*">
+        <File Id="FIL_22" Source="C:\Users\Kanuhin_A\source\Navisworks\SmartGroupClashes\Installer\staging-smartnavistools\SmartNavisTools.bundle\Contents\2026\ClashStatusIcon_Small.ico" KeyPath="yes" />
+      </Component>
+      <Component Id="CMP_23" Directory="DIR_Contents_2026" Guid="*">
+        <File Id="FIL_23" Source="C:\Users\Kanuhin_A\source\Navisworks\SmartGroupClashes\Installer\staging-smartnavistools\SmartNavisTools.bundle\Contents\2026\ClashTestsIcon_Large.ico" KeyPath="yes" />
+      </Component>
+      <Component Id="CMP_24" Directory="DIR_Contents_2026" Guid="*">
+        <File Id="FIL_24" Source="C:\Users\Kanuhin_A\source\Navisworks\SmartGroupClashes\Installer\staging-smartnavistools\SmartNavisTools.bundle\Contents\2026\ClashTestsIcon_Small.ico" KeyPath="yes" />
+      </Component>
+      <Component Id="CMP_25" Directory="DIR_Contents_2026_en_US" Guid="*">
+        <File Id="FIL_25" Source="C:\Users\Kanuhin_A\source\Navisworks\SmartGroupClashes\Installer\staging-smartnavistools\SmartNavisTools.bundle\Contents\2026\en-US\SmartNavisTools.name" KeyPath="yes" />
+      </Component>
+      <Component Id="CMP_26" Directory="DIR_Contents_2026_en_US" Guid="*">
+        <File Id="FIL_26" Source="C:\Users\Kanuhin_A\source\Navisworks\SmartGroupClashes\Installer\staging-smartnavistools\SmartNavisTools.bundle\Contents\2026\en-US\SmartNavisTools.xaml" KeyPath="yes" />
+      </Component>
+      <Component Id="CMP_27" Directory="DIR_Contents_2026_Images" Guid="*">
+        <File Id="FIL_27" Source="C:\Users\Kanuhin_A\source\Navisworks\SmartGroupClashes\Installer\staging-smartnavistools\SmartNavisTools.bundle\Contents\2026\Images\SmartNavisToolsIcon_Large.ico" KeyPath="yes" />
+      </Component>
+      <Component Id="CMP_28" Directory="DIR_Contents_2026_Images" Guid="*">
+        <File Id="FIL_28" Source="C:\Users\Kanuhin_A\source\Navisworks\SmartGroupClashes\Installer\staging-smartnavistools\SmartNavisTools.bundle\Contents\2026\Images\SmartNavisToolsIcon_Small.ico" KeyPath="yes" />
+      </Component>
+      <Component Id="CMP_29" Directory="DIR_Contents_2026_Reports" Guid="*">
+        <File Id="FIL_29" Source="C:\Users\Kanuhin_A\source\Navisworks\SmartGroupClashes\Installer\staging-smartnavistools\SmartNavisTools.bundle\Contents\2026\Reports\clash-dashboard.css" KeyPath="yes" />
+      </Component>
+      <Component Id="CMP_30" Directory="DIR_Contents_2026_Reports" Guid="*">
+        <File Id="FIL_30" Source="C:\Users\Kanuhin_A\source\Navisworks\SmartGroupClashes\Installer\staging-smartnavistools\SmartNavisTools.bundle\Contents\2026\Reports\clash-dashboard.html" KeyPath="yes" />
+      </Component>
+      <Component Id="CMP_31" Directory="DIR_Contents_2026_Reports" Guid="*">
+        <File Id="FIL_31" Source="C:\Users\Kanuhin_A\source\Navisworks\SmartGroupClashes\Installer\staging-smartnavistools\SmartNavisTools.bundle\Contents\2026\Reports\plotly.min.js" KeyPath="yes" />
+      </Component>
+      <Component Id="CMP_32" Directory="DIR_Contents_2026" Guid="*">
+        <File Id="FIL_32" Source="C:\Users\Kanuhin_A\source\Navisworks\SmartGroupClashes\Installer\staging-smartnavistools\SmartNavisTools.bundle\Contents\2026\SearchSetsProIcon_Large.ico" KeyPath="yes" />
+      </Component>
+      <Component Id="CMP_33" Directory="DIR_Contents_2026" Guid="*">
+        <File Id="FIL_33" Source="C:\Users\Kanuhin_A\source\Navisworks\SmartGroupClashes\Installer\staging-smartnavistools\SmartNavisTools.bundle\Contents\2026\SearchSetsProIcon_Small.ico" KeyPath="yes" />
+      </Component>
+      <Component Id="CMP_34" Directory="DIR_Contents_2026" Guid="*">
+        <File Id="FIL_34" Source="C:\Users\Kanuhin_A\source\Navisworks\SmartGroupClashes\Installer\staging-smartnavistools\SmartNavisTools.bundle\Contents\2026\SmartNavisTools.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="CMP_35" Directory="DIR_Contents_2026" Guid="*">
+        <File Id="FIL_35" Source="C:\Users\Kanuhin_A\source\Navisworks\SmartGroupClashes\Installer\staging-smartnavistools\SmartNavisTools.bundle\Contents\2026\SmartNavisToolsIcon_Large.ico" KeyPath="yes" />
+      </Component>
+      <Component Id="CMP_36" Directory="DIR_Contents_2026" Guid="*">
+        <File Id="FIL_36" Source="C:\Users\Kanuhin_A\source\Navisworks\SmartGroupClashes\Installer\staging-smartnavistools\SmartNavisTools.bundle\Contents\2026\SmartNavisToolsIcon_Small.ico" KeyPath="yes" />
+      </Component>
+      <Component Id="CMP_37" Directory="INSTALLFOLDER" Guid="*">
+        <File Id="FIL_37" Source="C:\Users\Kanuhin_A\source\Navisworks\SmartGroupClashes\Installer\staging-smartnavistools\SmartNavisTools.bundle\PackageContents.xml" KeyPath="yes" />
+      </Component>
+    </ComponentGroup>
+  </Package>
+</Wix>

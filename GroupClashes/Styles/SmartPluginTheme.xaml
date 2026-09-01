@@ -1,0 +1,403 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+  <!-- ═══════════════════ Палитра ═══════════════════ -->
+  <Color x:Key="PluginColor.Primary">#FF005E96</Color>
+  <Color x:Key="PluginColor.Accent">#FF0DA9CA</Color>
+  <Color x:Key="PluginColor.AccentDeep">#FF128085</Color>
+  <Color x:Key="PluginColor.Surface">#FFE5EAF1</Color>
+  <Color x:Key="PluginColor.Card">#FFF7F9FC</Color>
+  <Color x:Key="PluginColor.Inset">#FFD5DBE5</Color>
+  <Color x:Key="PluginColor.Field">#FFFFFFFF</Color>
+  <Color x:Key="PluginColor.Border">#FFC8D1DE</Color>
+  <Color x:Key="PluginColor.Foreground">#FF1D2733</Color>
+  <Color x:Key="PluginColor.Muted">#FF5C6875</Color>
+  <Color x:Key="PluginColor.OnPrimary">#FFFFFFFF</Color>
+
+  <SolidColorBrush x:Key="PluginBrush.Primary" Color="{StaticResource PluginColor.Primary}" />
+  <SolidColorBrush x:Key="PluginBrush.Accent" Color="{StaticResource PluginColor.Accent}" />
+  <SolidColorBrush x:Key="PluginBrush.AccentDeep" Color="{StaticResource PluginColor.AccentDeep}" />
+  <SolidColorBrush x:Key="PluginBrush.Surface" Color="{StaticResource PluginColor.Surface}" />
+  <SolidColorBrush x:Key="PluginBrush.Card" Color="{StaticResource PluginColor.Card}" />
+  <SolidColorBrush x:Key="PluginBrush.Inset" Color="{StaticResource PluginColor.Inset}" />
+  <SolidColorBrush x:Key="PluginBrush.Field" Color="{StaticResource PluginColor.Field}" />
+  <SolidColorBrush x:Key="PluginBrush.Border" Color="{StaticResource PluginColor.Border}" />
+  <SolidColorBrush x:Key="PluginBrush.Foreground" Color="{StaticResource PluginColor.Foreground}" />
+  <SolidColorBrush x:Key="PluginBrush.Muted" Color="{StaticResource PluginColor.Muted}" />
+  <SolidColorBrush x:Key="PluginBrush.OnPrimary" Color="{StaticResource PluginColor.OnPrimary}" />
+  <SolidColorBrush x:Key="PluginBrush.ButtonSolidEdge" Color="#FF004A78" />
+
+  <CornerRadius x:Key="PluginRadius.Control">6</CornerRadius>
+  <CornerRadius x:Key="PluginRadius.Button">6</CornerRadius>
+  <CornerRadius x:Key="PluginRadius.ButtonInner">5</CornerRadius>
+
+  <LinearGradientBrush x:Key="PluginBrush.HeaderGradient" StartPoint="0,0" EndPoint="1,0">
+    <GradientStop Color="{StaticResource PluginColor.Primary}" Offset="0" />
+    <GradientStop Color="{StaticResource PluginColor.Accent}" Offset="1" />
+  </LinearGradientBrush>
+
+  <DropShadowEffect x:Key="PluginEffect.ButtonSoft"
+                    BlurRadius="8" ShadowDepth="1" Direction="270"
+                    Opacity="0.14" Color="#FF7A8496" />
+  <DropShadowEffect x:Key="PluginEffect.ButtonPressed"
+                    BlurRadius="2" ShadowDepth="1" Direction="135"
+                    Opacity="0.16" Color="#FF7A8496" />
+  <DropShadowEffect x:Key="PluginEffect.AccentButton"
+                    BlurRadius="10" ShadowDepth="2" Direction="270"
+                    Opacity="0.18" Color="#FF7A8496" />
+
+  <!-- ═══════════════════ Макет ═══════════════════ -->
+  <Style x:Key="PluginHeaderBorderStyle" TargetType="Border">
+    <Setter Property="Background" Value="{StaticResource PluginBrush.HeaderGradient}" />
+    <Setter Property="CornerRadius" Value="0,0,10,10" />
+    <Setter Property="Padding" Value="16,12" />
+    <Setter Property="Margin" Value="0,0,0,12" />
+  </Style>
+
+  <Style x:Key="PluginHeaderTitleStyle" TargetType="TextBlock">
+    <Setter Property="FontFamily" Value="Arial" />
+    <Setter Property="FontSize" Value="18" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="{StaticResource PluginBrush.OnPrimary}" />
+  </Style>
+
+  <Style x:Key="PluginHeaderDescriptionStyle" TargetType="TextBlock">
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="Margin" Value="0,6,0,0" />
+    <Setter Property="Foreground" Value="#EAF7FCFF" />
+    <Setter Property="TextWrapping" Value="Wrap" />
+  </Style>
+
+  <Style x:Key="PluginCardStyle" TargetType="Border">
+    <Setter Property="Background" Value="{StaticResource PluginBrush.Card}" />
+    <Setter Property="BorderBrush" Value="{StaticResource PluginBrush.Border}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="10" />
+    <Setter Property="Padding" Value="14,12" />
+    <Setter Property="Margin" Value="0,0,0,12" />
+  </Style>
+
+  <Style x:Key="PluginSectionTitleStyle" TargetType="TextBlock">
+    <Setter Property="FontSize" Value="14" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="{StaticResource PluginBrush.Foreground}" />
+    <Setter Property="Margin" Value="0,0,0,4" />
+  </Style>
+
+  <Style x:Key="PluginMutedTextStyle" TargetType="TextBlock">
+    <Setter Property="FontSize" Value="11.5" />
+    <Setter Property="Foreground" Value="{StaticResource PluginBrush.Muted}" />
+    <Setter Property="TextWrapping" Value="Wrap" />
+  </Style>
+
+  <!-- ═══════════════════ Button (закруглённая, с тенью, hover -> accent) ═══════════════════ -->
+  <Style TargetType="{x:Type Button}">
+    <Setter Property="FontFamily" Value="Segoe UI" />
+    <Setter Property="FontSize" Value="12.5" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="{StaticResource PluginBrush.Foreground}" />
+    <Setter Property="Background" Value="#FFFFFFFF" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Padding" Value="14,0" />
+    <Setter Property="MinWidth" Value="72" />
+    <Setter Property="Height" Value="28" />
+    <Setter Property="Cursor" Value="Hand" />
+    <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+    <Setter Property="SnapsToDevicePixels" Value="True" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="Button">
+          <Grid SnapsToDevicePixels="True" UseLayoutRounding="True">
+            <Border x:Name="Shadow"
+                    Background="{TemplateBinding Background}"
+                    CornerRadius="{StaticResource PluginRadius.Button}"
+                    Effect="{StaticResource PluginEffect.ButtonSoft}" />
+            <Border x:Name="Stroke"
+                    Background="{StaticResource PluginBrush.Border}"
+                    CornerRadius="{StaticResource PluginRadius.Button}"
+                    SnapsToDevicePixels="True">
+              <Border x:Name="Bd"
+                      Background="{TemplateBinding Background}"
+                      CornerRadius="{StaticResource PluginRadius.ButtonInner}"
+                      Margin="1"
+                      Padding="{TemplateBinding Padding}"
+                      SnapsToDevicePixels="True">
+                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
+                                  TextElement.Foreground="{TemplateBinding Foreground}" />
+              </Border>
+            </Border>
+          </Grid>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+              <Setter TargetName="Shadow" Property="Background" Value="{StaticResource PluginBrush.Accent}" />
+              <Setter TargetName="Stroke" Property="Background" Value="{StaticResource PluginBrush.Accent}" />
+              <Setter TargetName="Bd" Property="Background" Value="{StaticResource PluginBrush.Accent}" />
+              <Setter Property="Foreground" Value="{StaticResource PluginBrush.OnPrimary}" />
+            </Trigger>
+            <Trigger Property="IsPressed" Value="True">
+              <Setter TargetName="Shadow" Property="Background" Value="{StaticResource PluginBrush.AccentDeep}" />
+              <Setter TargetName="Shadow" Property="Effect" Value="{StaticResource PluginEffect.ButtonPressed}" />
+              <Setter TargetName="Stroke" Property="Background" Value="{StaticResource PluginBrush.AccentDeep}" />
+              <Setter TargetName="Bd" Property="Background" Value="{StaticResource PluginBrush.AccentDeep}" />
+              <Setter Property="Foreground" Value="{StaticResource PluginBrush.OnPrimary}" />
+            </Trigger>
+            <Trigger Property="IsEnabled" Value="False">
+              <Setter Property="Opacity" Value="0.5" />
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
+  <!-- ═══════════════════ TextBox (закруглённый, focus -> primary) ═══════════════════ -->
+  <Style TargetType="{x:Type TextBox}">
+    <Setter Property="FontFamily" Value="Segoe UI" />
+    <Setter Property="FontSize" Value="12.5" />
+    <Setter Property="Foreground" Value="{StaticResource PluginBrush.Foreground}" />
+    <Setter Property="Background" Value="{StaticResource PluginBrush.Field}" />
+    <Setter Property="BorderBrush" Value="{StaticResource PluginBrush.Border}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="Padding" Value="7,3" />
+    <Setter Property="MinHeight" Value="24" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+    <Setter Property="CaretBrush" Value="{StaticResource PluginBrush.Primary}" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="TextBox">
+          <Border x:Name="Bd"
+                  Background="{TemplateBinding Background}"
+                  BorderBrush="{TemplateBinding BorderBrush}"
+                  BorderThickness="{TemplateBinding BorderThickness}"
+                  CornerRadius="{StaticResource PluginRadius.Control}"
+                  SnapsToDevicePixels="True">
+            <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}" />
+          </Border>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+              <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource PluginBrush.Primary}" />
+            </Trigger>
+            <Trigger Property="IsKeyboardFocused" Value="True">
+              <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource PluginBrush.Primary}" />
+              <Setter TargetName="Bd" Property="Background" Value="#FFF7FAFD" />
+            </Trigger>
+            <Trigger Property="IsEnabled" Value="False">
+              <Setter TargetName="Bd" Property="Background" Value="{StaticResource PluginBrush.Inset}" />
+              <Setter Property="Opacity" Value="0.7" />
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
+  <!-- ═══════════════════ ComboBox (закруглённый, шеврон, dropdown) ═══════════════════ -->
+  <Style TargetType="{x:Type ComboBox}">
+    <Setter Property="FontFamily" Value="Segoe UI" />
+    <Setter Property="FontSize" Value="12.5" />
+    <Setter Property="Foreground" Value="{StaticResource PluginBrush.Foreground}" />
+    <Setter Property="Background" Value="{StaticResource PluginBrush.Field}" />
+    <Setter Property="BorderBrush" Value="{StaticResource PluginBrush.Border}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="Padding" Value="7,3" />
+    <Setter Property="MinHeight" Value="24" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+    <Setter Property="SnapsToDevicePixels" Value="True" />
+    <Setter Property="MaxDropDownHeight" Value="200" />
+    <Setter Property="ItemContainerStyle">
+      <Setter.Value>
+        <Style TargetType="ComboBoxItem">
+          <Setter Property="FontFamily" Value="Segoe UI" />
+          <Setter Property="FontSize" Value="12.5" />
+          <Setter Property="Foreground" Value="{StaticResource PluginBrush.Foreground}" />
+          <Setter Property="Padding" Value="8,4" />
+          <Setter Property="Template">
+            <Setter.Value>
+              <ControlTemplate TargetType="ComboBoxItem">
+                <Border x:Name="Bd" Background="Transparent" Padding="{TemplateBinding Padding}" SnapsToDevicePixels="True">
+                  <ContentPresenter />
+                </Border>
+                <ControlTemplate.Triggers>
+                  <Trigger Property="IsHighlighted" Value="True">
+                    <Setter TargetName="Bd" Property="Background" Value="#1A005E96" />
+                  </Trigger>
+                  <Trigger Property="IsSelected" Value="True">
+                    <Setter TargetName="Bd" Property="Background" Value="#22005E96" />
+                  </Trigger>
+                </ControlTemplate.Triggers>
+              </ControlTemplate>
+            </Setter.Value>
+          </Setter>
+        </Style>
+      </Setter.Value>
+    </Setter>
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="ComboBox">
+          <Grid>
+            <ToggleButton x:Name="ToggleButton"
+                          Focusable="False"
+                          IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
+                          ClickMode="Press">
+              <ToggleButton.Template>
+                <ControlTemplate TargetType="ToggleButton">
+                  <Border x:Name="ToggleBd"
+                          Background="{Binding Background, RelativeSource={RelativeSource AncestorType=ComboBox}}"
+                          BorderBrush="{Binding BorderBrush, RelativeSource={RelativeSource AncestorType=ComboBox}}"
+                          BorderThickness="{Binding BorderThickness, RelativeSource={RelativeSource AncestorType=ComboBox}}"
+                          CornerRadius="{StaticResource PluginRadius.Control}"
+                          SnapsToDevicePixels="True">
+                    <Grid>
+                      <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="28" />
+                      </Grid.ColumnDefinitions>
+                      <Border Grid.Column="1" Background="Transparent">
+                        <Path x:Name="Arrow"
+                              Data="M 0,0 L 4,4 L 8,0"
+                              Stroke="{StaticResource PluginBrush.Muted}"
+                              StrokeThickness="1.5"
+                              StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
+                              HorizontalAlignment="Center" VerticalAlignment="Center"
+                              Width="10" Height="6" Stretch="Uniform" />
+                      </Border>
+                    </Grid>
+                  </Border>
+                  <ControlTemplate.Triggers>
+                    <Trigger Property="IsMouseOver" Value="True">
+                      <Setter TargetName="ToggleBd" Property="BorderBrush" Value="{StaticResource PluginBrush.Primary}" />
+                      <Setter TargetName="Arrow" Property="Stroke" Value="{StaticResource PluginBrush.Primary}" />
+                    </Trigger>
+                    <Trigger Property="IsChecked" Value="True">
+                      <Setter TargetName="ToggleBd" Property="BorderBrush" Value="{StaticResource PluginBrush.Primary}" />
+                      <Setter TargetName="Arrow" Property="Stroke" Value="{StaticResource PluginBrush.Primary}" />
+                    </Trigger>
+                  </ControlTemplate.Triggers>
+                </ControlTemplate>
+              </ToggleButton.Template>
+            </ToggleButton>
+
+            <ContentPresenter x:Name="ContentSite"
+                              IsHitTestVisible="False"
+                              Content="{TemplateBinding SelectionBoxItem}"
+                              ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                              ContentTemplateSelector="{TemplateBinding ItemTemplateSelector}"
+                              Margin="7,3,26,3"
+                              VerticalAlignment="Center" HorizontalAlignment="Left"
+                              RecognizesAccessKey="False"
+                              TextElement.Foreground="{TemplateBinding Foreground}"
+                              TextElement.FontFamily="{TemplateBinding FontFamily}"
+                              TextElement.FontSize="{TemplateBinding FontSize}" />
+
+            <TextBox x:Name="PART_EditableTextBox"
+                     Visibility="Hidden"
+                     Background="Transparent" BorderThickness="0"
+                     Focusable="True"
+                     HorizontalAlignment="Stretch" VerticalAlignment="Center"
+                     Margin="4,1,26,1" Padding="3,1"
+                     FontFamily="{TemplateBinding FontFamily}" FontSize="{TemplateBinding FontSize}"
+                     Foreground="{TemplateBinding Foreground}"
+                     CaretBrush="{StaticResource PluginBrush.Primary}"
+                     IsReadOnly="{TemplateBinding IsReadOnly}"
+                     VerticalContentAlignment="Center" />
+
+            <Popup x:Name="PART_Popup"
+                   Placement="Bottom"
+                   IsOpen="{TemplateBinding IsDropDownOpen}"
+                   AllowsTransparency="True" Focusable="False" PopupAnimation="None">
+              <Border Background="{StaticResource PluginBrush.Field}"
+                      BorderBrush="{StaticResource PluginBrush.Border}"
+                      BorderThickness="1"
+                      CornerRadius="{StaticResource PluginRadius.Control}"
+                      Margin="0,2,0,0"
+                      MinWidth="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}"
+                      SnapsToDevicePixels="True">
+                <ScrollViewer Margin="0,2" MaxHeight="{TemplateBinding MaxDropDownHeight}"
+                              VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                  <ItemsPresenter KeyboardNavigation.DirectionalNavigation="Contained" />
+                </ScrollViewer>
+              </Border>
+            </Popup>
+          </Grid>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsEnabled" Value="False">
+              <Setter Property="Opacity" Value="0.55" />
+            </Trigger>
+            <Trigger Property="IsEditable" Value="True">
+              <Setter Property="IsTabStop" Value="False" />
+              <Setter TargetName="ContentSite" Property="Visibility" Value="Hidden" />
+              <Setter TargetName="PART_EditableTextBox" Property="Visibility" Value="Visible" />
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
+  <!-- ═══════════════════ CheckBox (закруглённый mark, галочка -> primary) ═══════════════════ -->
+  <Style TargetType="{x:Type CheckBox}">
+    <Setter Property="FontFamily" Value="Segoe UI" />
+    <Setter Property="FontSize" Value="12.5" />
+    <Setter Property="Foreground" Value="{StaticResource PluginBrush.Foreground}" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+    <Setter Property="Margin" Value="0,2,0,2" />
+    <Setter Property="Cursor" Value="Hand" />
+    <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+    <Setter Property="SnapsToDevicePixels" Value="True" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="CheckBox">
+          <Grid Background="Transparent" SnapsToDevicePixels="True">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="Auto" />
+              <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <Border x:Name="Mark"
+                    Width="14" Height="14"
+                    CornerRadius="3"
+                    Background="#FFFFFFFF"
+                    BorderBrush="{StaticResource PluginBrush.Border}"
+                    BorderThickness="1"
+                    VerticalAlignment="Center"
+                    Margin="0,0,8,0"
+                    SnapsToDevicePixels="True">
+              <Path x:Name="CheckGlyph"
+                    Data="M 2,7 L 5.5,10.2 L 11.5,3.5"
+                    Stroke="{StaticResource PluginBrush.OnPrimary}"
+                    StrokeThickness="1.6"
+                    StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                    Stretch="Uniform" Margin="2"
+                    Visibility="Collapsed"
+                    HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </Border>
+            <ContentPresenter Grid.Column="1"
+                              VerticalAlignment="Center"
+                              RecognizesAccessKey="False"
+                              TextElement.Foreground="{TemplateBinding Foreground}"
+                              TextElement.FontFamily="{TemplateBinding FontFamily}"
+                              TextElement.FontSize="{TemplateBinding FontSize}" />
+          </Grid>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsChecked" Value="True">
+              <Setter TargetName="Mark" Property="Background" Value="{StaticResource PluginBrush.Primary}" />
+              <Setter TargetName="Mark" Property="BorderBrush" Value="{StaticResource PluginBrush.Primary}" />
+              <Setter TargetName="CheckGlyph" Property="Visibility" Value="Visible" />
+            </Trigger>
+            <Trigger Property="IsMouseOver" Value="True">
+              <Setter TargetName="Mark" Property="BorderBrush" Value="{StaticResource PluginBrush.Primary}" />
+            </Trigger>
+            <Trigger Property="IsEnabled" Value="False">
+              <Setter Property="Opacity" Value="0.5" />
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
+  <!-- Label -->
+  <Style TargetType="{x:Type Label}">
+    <Setter Property="Foreground" Value="{StaticResource PluginBrush.Foreground}" />
+  </Style>
+
+</ResourceDictionary>

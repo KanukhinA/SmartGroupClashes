@@ -1,0 +1,1727 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Статистика пересечений</title>
+  <link rel="stylesheet" href="./clash-dashboard.css">
+  <script src="./plotly.min.js"></script>
+</head>
+<body>
+  <header class="header">
+    <h1>Статистика пересечений</h1>
+    <div class="meta">
+      <span id="generatedAt"></span>
+      <div class="zoom-controls" role="group" aria-label="Масштаб содержимого">
+        <button id="zoomOut" type="button" title="Уменьшить" aria-label="Уменьшить масштаб">−</button>
+        <span id="zoomLabel" class="zoom-label">100%</span>
+        <button id="zoomIn" type="button" title="Увеличить" aria-label="Увеличить масштаб">+</button>
+        <button id="zoomReset" type="button" title="Сбросить масштаб">100%</button>
+      </div>
+      <button id="resetFilters" type="button">Сбросить фильтры</button>
+      <button id="exportCsv" type="button">Скачать CSV</button>
+      <button id="exportAll" class="btn-primary" type="button">Скачать все графики</button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <aside class="sidebar">
+      <div class="sidebar-title">Фильтры</div>
+
+      <label for="filterTests">Проверки</label>
+      <select id="filterTests" multiple size="8"></select>
+
+      <label for="filterStatuses">Статусы</label>
+      <select id="filterStatuses" multiple size="6"></select>
+
+      <label for="filterModels">Файлы моделей</label>
+      <select id="filterModels" multiple size="8"></select>
+
+      <label for="filterFloors">Этажи (полоски)</label>
+      <select id="filterFloors" multiple size="8"></select>
+
+      <label for="filterModelDisciplines">Раздел модели (график)</label>
+      <select id="filterModelDisciplines" multiple size="8"></select>
+
+      <label for="filterPartnerDisciplines">Смежный раздел (сегмент)</label>
+      <select id="filterPartnerDisciplines" multiple size="8"></select>
+
+      <p class="sidebar-help">
+        Один график = один раздел модели.<br>
+        Полоска = этаж.<br>
+        Цвет сегмента = смежный раздел (второй участник) или статус.
+      </p>
+
+      <div class="sidebar-title sidebar-section">Цвет сегментов полоски</div>
+      <div class="stack-mode" role="radiogroup" aria-label="Цвет сегментов полоски">
+        <label class="radio">
+          <input type="radio" name="stackMode" value="discipline" checked>
+          <span>Смежный раздел</span>
+        </label>
+        <label class="radio">
+          <input type="radio" name="stackMode" value="status">
+          <span>Статус</span>
+        </label>
+      </div>
+
+      <label class="checkbox">
+        <input id="percentMode" type="checkbox">
+        <span id="percentModeLabel">Показывать доли сегментов (каждый этаж = 100%)</span>
+      </label>
+    </aside>
+
+    <div class="content">
+      <section class="kpi-panel card" id="kpiPanel" aria-live="polite">
+        <div class="kpi-grid" id="kpiGrid"></div>
+        <p class="narrative" id="narrative"></p>
+      </section>
+
+      <section class="card chart-card hotspots-panel">
+        <div class="card-header">
+          <h2>Все пересечения по этажам</h2>
+        </div>
+        <p class="card-hint" id="summaryFloorsHint">Сводка по всем пересечениям: полоска = этаж, цвет сегмента = раздел модели.</p>
+        <div class="chart chart-hotspot" id="summaryFloorsChart" data-title="summary_floors_by_discipline"></div>
+        <div class="card-actions">
+          <button type="button" class="chart-download" id="summaryFloorsPng">Скачать PNG</button>
+        </div>
+      </section>
+
+      <section class="card chart-card hotspots-panel">
+        <div class="card-header">
+          <h2 id="hotspotsFloorTitle">Топ пересечений по этажам</h2>
+        </div>
+        <p class="card-hint" id="hotspotsFloorHint">Топ проблемных мест: этаж × сегмент. Клик по столбцу открывает список коллизий.</p>
+        <div class="chart chart-hotspot" id="hotspotsFloorChart" data-title="hotspots_floor"></div>
+        <div class="card-actions">
+          <button type="button" class="chart-download" id="hotspotsFloorPng">Скачать PNG</button>
+        </div>
+      </section>
+
+      <section class="card chart-card hotspots-panel">
+        <div class="card-header">
+          <h2 id="hotspotsAxesTitle">Топ пересечений по этажам и осям</h2>
+        </div>
+        <p class="card-hint" id="hotspotsAxesHint">Топ проблемных мест: этаж × оси × сегмент. Клик по столбцу открывает список коллизий.</p>
+        <div class="chart chart-hotspot" id="hotspotsAxesChart" data-title="hotspots_floor_axes"></div>
+        <div class="card-actions">
+          <button type="button" class="chart-download" id="hotspotsAxesPng">Скачать PNG</button>
+        </div>
+      </section>
+
+      <section class="card chart-card hotspots-panel">
+        <div class="card-header">
+          <h2>Топ разделов моделей</h2>
+        </div>
+        <p class="card-hint" id="hotspotsDisciplineHint">Топ разделов, по которым строятся графики. Внутри столбца — файлы моделей этого раздела. Клик открывает список коллизий.</p>
+        <div class="chart chart-hotspot" id="hotspotsDisciplineChart" data-title="hotspots_model_disciplines"></div>
+        <div class="card-actions">
+          <button type="button" class="chart-download" id="hotspotsDisciplinePng">Скачать PNG</button>
+        </div>
+      </section>
+
+      <section class="card chart-card hotspots-panel">
+        <div class="card-header">
+          <h2>Топ смежных разделов</h2>
+        </div>
+        <p class="card-hint" id="hotspotsPartnerHint">Топ смежных разделов (сегменты полосок). Это второй участник пересечения. Клик открывает список коллизий.</p>
+        <div class="chart chart-hotspot" id="hotspotsPartnerChart" data-title="hotspots_partner_disciplines"></div>
+        <div class="card-actions">
+          <button type="button" class="chart-download" id="hotspotsPartnerPng">Скачать PNG</button>
+        </div>
+      </section>
+
+      <section class="charts" id="chartsContainer"></section>
+    </div>
+  </main>
+
+  <aside class="drawer" id="detailDrawer" hidden>
+    <div class="drawer-panel" id="drawerPanel" role="dialog" aria-labelledby="drawerTitle">
+      <div class="drawer-resizer" id="drawerResizer" title="Изменить ширину панели" role="separator" aria-orientation="vertical" aria-label="Изменить ширину панели"></div>
+      <div class="drawer-header">
+        <h2 id="drawerTitle">Детализация</h2>
+        <button id="drawerClose" type="button" aria-label="Закрыть">Закрыть</button>
+      </div>
+      <p class="drawer-meta" id="drawerMeta"></p>
+      <div class="drawer-actions">
+        <button id="exportSliceCsv" type="button">Скачать CSV среза</button>
+      </div>
+      <div class="table-wrap drawer-table-wrap">
+        <table class="data-table" id="drawerTable">
+          <thead>
+            <tr>
+              <th data-col="clash">Коллизия</th>
+              <th data-col="model1">Модель 1</th>
+              <th class="col-id" data-col="id1">ID 1</th>
+              <th data-col="item1">Элемент 1</th>
+              <th data-col="model2">Модель 2</th>
+              <th class="col-id" data-col="id2">ID 2</th>
+              <th data-col="item2">Элемент 2</th>
+              <th data-col="status">Статус</th>
+              <th data-col="test">Проверка</th>
+            </tr>
+          </thead>
+          <tbody id="drawerBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </aside>
+
+  <script>
+    window.CLASH_DATA = __CLASH_DATA_JSON__;
+
+    (function() {
+      const DETAIL_LIMIT = 500;
+      const HOTSPOT_LIMIT = 15;
+      const OPEN_STATUSES = { "Новый": true, "Активный": true };
+      const STATUS_PALETTE = {
+        "Новый": "#DC2626",
+        "Активный": "#D97706",
+        "Проверенный": "#3B82F6",
+        "Утверждённый": "#059669",
+        "Исправленный": "#64748B"
+      };
+      const STATUS_ORDER = ["Новый", "Активный", "Проверенный", "Утверждённый", "Исправленный"];
+
+      const CHART_ROW_HEIGHT = 36;
+      const CHART_MIN_HEIGHT = 320;
+      const CHART_MAX_HEIGHT = 2400;
+      const CHART_BASE_HEIGHT = 120;
+      const EXPORT_BASE_WIDTH = 1920;
+      const EXPORT_SCALE = 3;
+      const EXPORT_MIN_FONT = 14;
+      const SCREEN_MIN_FONT = 11;
+      const SCREEN_TITLE_FONT = 16;
+      const CHART_FONT_FAMILY = "Segoe UI, system-ui, Arial, sans-serif";
+      const CHART_FOREGROUND = "#1E3A8A";
+      const CHART_MUTED = "#64748B";
+
+      const data = window.CLASH_DATA || { records: [], percentMode: false };
+      // Зеркала для симметрии ВК↔ОВ2 строим в браузере, чтобы не раздувать JSON при генерации.
+      const records = expandMirrorRecords(Array.isArray(data.records) ? data.records : []);
+      const chartsContainer = document.getElementById("chartsContainer");
+      const kpiGrid = document.getElementById("kpiGrid");
+      const narrativeEl = document.getElementById("narrative");
+      const hotspotsFloorChart = document.getElementById("hotspotsFloorChart");
+      const hotspotsAxesChart = document.getElementById("hotspotsAxesChart");
+      const hotspotsDisciplineChart = document.getElementById("hotspotsDisciplineChart");
+      const hotspotsPartnerChart = document.getElementById("hotspotsPartnerChart");
+      const summaryFloorsChart = document.getElementById("summaryFloorsChart");
+      const summaryFloorsHint = document.getElementById("summaryFloorsHint");
+      const hotspotsFloorHint = document.getElementById("hotspotsFloorHint");
+      const hotspotsAxesHint = document.getElementById("hotspotsAxesHint");
+      const hotspotsDisciplineHint = document.getElementById("hotspotsDisciplineHint");
+      const hotspotsPartnerHint = document.getElementById("hotspotsPartnerHint");
+      const percentModeToggle = document.getElementById("percentMode");
+      const percentModeLabel = document.getElementById("percentModeLabel");
+      const filterTests = document.getElementById("filterTests");
+      const filterStatuses = document.getElementById("filterStatuses");
+      const filterModels = document.getElementById("filterModels");
+      const filterFloors = document.getElementById("filterFloors");
+      const filterModelDisciplines = document.getElementById("filterModelDisciplines");
+      const filterPartnerDisciplines = document.getElementById("filterPartnerDisciplines");
+      const detailDrawer = document.getElementById("detailDrawer");
+      const drawerTitle = document.getElementById("drawerTitle");
+      const drawerMeta = document.getElementById("drawerMeta");
+      const drawerBody = document.getElementById("drawerBody");
+      const generatedAt = document.getElementById("generatedAt");
+
+      let sliceRecords = [];
+      const colorMap = new Map();
+      const DISCIPLINE_PALETTE = [
+        "#4C78A8", "#F58518", "#54A24B", "#E45756", "#72B7B2", "#B279A2",
+        "#FF9DA6", "#9D755D", "#BAB0AC", "#1E40AF", "#059669", "#D97706"
+      ];
+
+      generatedAt.textContent = "Сформирован: " + (data.generatedAt || "");
+      percentModeToggle.checked = false;
+
+      fillOptions(filterTests, uniqueValues(records, "testName"));
+      fillOptions(filterStatuses, uniqueValues(records, "status"));
+      fillOptions(filterModels, collectModelNames(records));
+      fillOptions(filterFloors, uniqueValues(records, "floor"));
+      fillOptions(filterModelDisciplines, uniqueValues(records, "modelDiscipline"));
+      fillOptions(filterPartnerDisciplines, uniqueValues(records, "discipline"));
+
+      const stackModeInputs = Array.from(document.querySelectorAll('input[name="stackMode"]'));
+      [filterTests, filterStatuses, filterModels, filterFloors, filterModelDisciplines, filterPartnerDisciplines, percentModeToggle]
+        .forEach(control => control.addEventListener("change", render));
+      stackModeInputs.forEach(input => input.addEventListener("change", function() {
+        updatePercentLabel();
+        render();
+      }));
+
+      document.getElementById("resetFilters").addEventListener("click", function() {
+        [filterTests, filterStatuses, filterModels, filterFloors, filterModelDisciplines, filterPartnerDisciplines].forEach(clearSelection);
+        percentModeToggle.checked = false;
+        const disciplineRadio = document.querySelector('input[name="stackMode"][value="discipline"]');
+        if (disciplineRadio) {
+          disciplineRadio.checked = true;
+        }
+        updatePercentLabel();
+        closeDrawer();
+        render();
+      });
+
+      document.getElementById("exportAll").addEventListener("click", async function() {
+        const cards = Array.from(document.querySelectorAll(".chart-card"));
+        for (let i = 0; i < cards.length; i++) {
+          await downloadCardChart(cards[i]);
+        }
+      });
+
+      document.getElementById("summaryFloorsPng").addEventListener("click", function() {
+        downloadCardChart(summaryFloorsChart.closest(".chart-card"));
+      });
+      document.getElementById("hotspotsFloorPng").addEventListener("click", function() {
+        downloadCardChart(hotspotsFloorChart.closest(".chart-card"));
+      });
+      document.getElementById("hotspotsAxesPng").addEventListener("click", function() {
+        downloadCardChart(hotspotsAxesChart.closest(".chart-card"));
+      });
+      document.getElementById("hotspotsDisciplinePng").addEventListener("click", function() {
+        downloadCardChart(hotspotsDisciplineChart.closest(".chart-card"));
+      });
+      document.getElementById("hotspotsPartnerPng").addEventListener("click", function() {
+        downloadCardChart(hotspotsPartnerChart.closest(".chart-card"));
+      });
+
+      document.getElementById("exportCsv").addEventListener("click", function() {
+        const filtered = primaryOnly(records.filter(matchFilters));
+        downloadCsv(filtered, "clash-dashboard-filtered.csv");
+      });
+
+      document.getElementById("exportSliceCsv").addEventListener("click", function() {
+        downloadCsv(primaryOnly(sliceRecords), "clash-dashboard-slice.csv");
+      });
+
+      document.getElementById("drawerClose").addEventListener("click", closeDrawer);
+      detailDrawer.addEventListener("click", function(event) {
+        if (event.target === detailDrawer) {
+          closeDrawer();
+        }
+      });
+      document.addEventListener("keydown", function(event) {
+        if (event.key === "Escape") {
+          closeDrawer();
+        }
+      });
+
+      initUiZoom();
+      initDrawerResize();
+      initColumnResize(document.getElementById("drawerTable"));
+      window.addEventListener("resize", resizeAllCharts);
+
+      updatePercentLabel();
+      render();
+
+      /** Возвращает текущий режим стека: discipline или status. */
+      function getStackMode() {
+        const checked = document.querySelector('input[name="stackMode"]:checked');
+        return checked && checked.value === "status" ? "status" : "discipline";
+      }
+
+      /** Возвращает ключ сегмента записи в зависимости от режима стека. */
+      function getSegmentKey() {
+        return getStackMode() === "status" ? "status" : "discipline";
+      }
+
+      /** Возвращает подпись сегмента для UI. */
+      function getSegmentLabel() {
+        return getStackMode() === "status" ? "Статус" : "Смежный раздел";
+      }
+
+      /** Обновляет текст чекбокса процентов под режим стека. */
+      function updatePercentLabel() {
+        const label = getStackMode() === "status" ? "статусов" : "смежных разделов";
+        percentModeLabel.textContent = "Показывать доли " + label + " (каждый этаж = 100%)";
+      }
+
+      /** Считает число рядов по оси Y из traces (игнорирует служебные legend-only). */
+      function countYRowsFromTraces(traces) {
+        let maxRows = 0;
+        (traces || []).forEach(function(trace) {
+          if (!Array.isArray(trace.y)) {
+            return;
+          }
+          const values = trace.y.filter(function(v) { return v != null && v !== ""; });
+          if (values.length === 0) {
+            return;
+          }
+          maxRows = Math.max(maxRows, new Set(values.map(String)).size || values.length);
+        });
+        return maxRows || 1;
+      }
+
+      /** Собирает подписи оси Y для оценки левого отступа. */
+      function collectYLabels(traces) {
+        const labels = [];
+        (traces || []).forEach(function(trace) {
+          if (!Array.isArray(trace.y)) {
+            return;
+          }
+          trace.y.forEach(function(v) {
+            if (v != null && v !== "") {
+              labels.push(String(v));
+            }
+          });
+        });
+        return labels;
+      }
+
+      /** Оценивает левый margin по длине подписей этажей/осей. */
+      function estimateLeftMargin(labels, minMargin, maxMargin) {
+        const minVal = minMargin || 120;
+        const maxVal = maxMargin || 420;
+        let maxLen = 0;
+        (labels || []).forEach(function(label) {
+          maxLen = Math.max(maxLen, String(label).length);
+        });
+        return Math.min(maxVal, Math.max(minVal, 40 + maxLen * 6.5));
+      }
+
+      /** Возвращает имена элементов легенды из traces. */
+      function getLegendItemsFromTraces(traces) {
+        const items = [];
+        (traces || []).forEach(function(trace) {
+          if (trace.showlegend === false || !trace.name) {
+            return;
+          }
+          items.push(String(trace.name));
+        });
+        return items;
+      }
+
+      /** Оценивает ширину правой легенды по числу и длине подписей. */
+      function estimateLegendWidth(items) {
+        if (!items || items.length === 0) {
+          return 28;
+        }
+        let maxLen = 0;
+        items.forEach(function(name) {
+          maxLen = Math.max(maxLen, String(name).length);
+        });
+        return Math.min(360, Math.max(120, 48 + maxLen * 7));
+      }
+
+      /** Вычисляет высоту контейнера графика по числу рядов. */
+      function computeChartHeight(rowCount, extraTop) {
+        const rows = Math.max(1, rowCount || 1);
+        const top = extraTop || 0;
+        const height = CHART_BASE_HEIGHT + top + rows * CHART_ROW_HEIGHT;
+        return Math.min(CHART_MAX_HEIGHT, Math.max(CHART_MIN_HEIGHT, height));
+      }
+
+      /**
+       * Строит единый layout для горизонтальных bar-графиков.
+       * mode: "screen" | "export"
+       */
+      function buildChartLayout(options) {
+        const opts = options || {};
+        const isExport = opts.mode === "export";
+        const fontSize = isExport ? EXPORT_MIN_FONT : SCREEN_MIN_FONT;
+        const titleSize = isExport ? 20 : SCREEN_TITLE_FONT;
+        const legendItems = opts.legendItems || [];
+        const legendSide = opts.legendSide || (isExport ? "right" : (legendItems.length > 6 ? "right" : "top"));
+        const yLabels = opts.yLabels || [];
+        const rowCount = opts.rowCount || Math.max(1, yLabels.length);
+
+        const leftMargin = estimateLeftMargin(yLabels, opts.minLeftMargin, opts.maxLeftMargin);
+        const legendWidth = legendSide === "right" ? estimateLegendWidth(legendItems) : 0;
+        const topMargin = legendSide === "top"
+          ? 56 + Math.ceil(legendItems.length / 5) * 22
+          : 64;
+
+        const layout = {
+          title: {
+            text: opts.title || "",
+            font: { family: CHART_FONT_FAMILY, size: titleSize, color: CHART_FOREGROUND },
+            x: 0,
+            xanchor: "left"
+          },
+          barmode: opts.barmode || "relative",
+          margin: {
+            l: leftMargin,
+            r: legendSide === "right" ? legendWidth + 28 : 28,
+            t: topMargin,
+            b: 56
+          },
+          paper_bgcolor: "#FFFFFF",
+          plot_bgcolor: "#F8FAFC",
+          xaxis: {
+            title: {
+              text: opts.xTitle || "",
+              font: { size: fontSize, color: CHART_MUTED }
+            },
+            gridcolor: "#E9EEF6",
+            zerolinecolor: "#DBEAFE",
+            tickfont: { size: fontSize, color: CHART_FOREGROUND }
+          },
+          yaxis: {
+            title: {
+              text: opts.yTitle || "",
+              font: { size: fontSize, color: CHART_MUTED }
+            },
+            automargin: true,
+            tickfont: { size: fontSize, color: CHART_FOREGROUND }
+          },
+          font: { family: CHART_FONT_FAMILY, color: CHART_FOREGROUND }
+        };
+
+        if (legendItems.length > 0) {
+          layout.legend = {
+            font: { size: fontSize, color: CHART_FOREGROUND }
+          };
+          if (opts.legendTitle) {
+            layout.legend.title = { text: opts.legendTitle, font: { size: fontSize, color: CHART_MUTED } };
+          }
+          if (legendSide === "right") {
+            layout.legend.orientation = "v";
+            layout.legend.xanchor = "left";
+            layout.legend.x = 1.02;
+            layout.legend.yanchor = "top";
+            layout.legend.y = 1;
+          } else {
+            layout.legend.orientation = "h";
+            layout.legend.yanchor = "bottom";
+            layout.legend.y = 1.02;
+            layout.legend.xanchor = "right";
+            layout.legend.x = 1;
+          }
+        }
+
+        layout._chartMeta = {
+          rowCount: rowCount,
+          legendSide: legendSide,
+          leftMargin: leftMargin,
+          legendWidth: legendWidth
+        };
+        return layout;
+      }
+
+      /** Задаёт высоту DOM-контейнера графика. */
+      function applyChartContainerSize(chartEl, height) {
+        if (!chartEl) {
+          return;
+        }
+        chartEl.style.height = Math.round(height) + "px";
+      }
+
+      /** Подгоняет высоту контейнера после построения графика. */
+      function finalizeChartSize(chartEl, layout) {
+        const meta = layout && layout._chartMeta ? layout._chartMeta : {};
+        const extraTop = meta.legendSide === "top" ? 24 : 0;
+        applyChartContainerSize(chartEl, computeChartHeight(meta.rowCount || 1, extraTop));
+      }
+
+      /** Удаляет служебные поля layout перед передачей в Plotly. */
+      function stripLayoutMeta(layout) {
+        const plotLayout = Object.assign({}, layout || {});
+        delete plotLayout._chartMeta;
+        return plotLayout;
+      }
+
+      /**
+       * Строит горизонтальный bar-график с единым layout и адаптивной высотой.
+       */
+      function plotHorizontalBarChart(chartEl, traces, layoutOptions) {
+        const yLabels = collectYLabels(traces);
+        const legendItems = getLegendItemsFromTraces(traces);
+        const rowCount = countYRowsFromTraces(traces);
+        const layout = buildChartLayout(Object.assign({}, layoutOptions, {
+          yLabels: yLabels,
+          rowCount: rowCount,
+          legendItems: legendItems,
+          mode: "screen"
+        }));
+        const meta = layout._chartMeta;
+        return Plotly.newPlot(chartEl, traces, stripLayoutMeta(layout), {
+          responsive: true,
+          displaylogo: false,
+          displayModeBar: false
+        }).then(function(gd) {
+          layout._chartMeta = meta;
+          finalizeChartSize(chartEl, layout);
+          return gd;
+        });
+      }
+
+      /** Служебные traces для легенды hotspot-графиков (цвет = сегмент). */
+      function buildLegendOnlyTraces(segments, segmentKey) {
+        return (segments || []).map(function(segmentName) {
+          return {
+            type: "bar",
+            orientation: "h",
+            name: segmentName,
+            x: [null],
+            y: [null],
+            marker: { color: colorForSegment(segmentName, segmentKey) },
+            hoverinfo: "skip",
+            showlegend: true
+          };
+        });
+      }
+
+      /** Перерисовывает KPI, hotspots и графики по текущим фильтрам. */
+      function render() {
+        const filtered = records.filter(matchFilters);
+        const filteredPrimary = primaryOnly(filtered);
+        const segmentKey = getSegmentKey();
+        const segmentLabel = getSegmentLabel();
+        const percentMode = percentModeToggle.checked;
+
+        renderKpi(filteredPrimary, filtered, segmentKey, segmentLabel);
+        renderSummaryFloorsChart(filteredPrimary, percentMode);
+        renderHotspotCharts(filteredPrimary, filtered, segmentKey, segmentLabel);
+        chartsContainer.innerHTML = "";
+
+        if (filtered.length === 0) {
+          chartsContainer.innerHTML = '<div class="empty">Нет данных по выбранным фильтрам.</div>';
+          return;
+        }
+
+        // Один график = один раздел модели. Зеркала дают симметрию ВК↔ОВ2.
+        const byModelDiscipline = groupBy(filtered, x => x.modelDiscipline || "Без раздела");
+        Object.keys(byModelDiscipline).sort().forEach(modelDisciplineName => {
+          const groupRecords = byModelDiscipline[modelDisciplineName];
+          const modelFiles = uniqueValues(groupRecords, "modelName").filter(Boolean).sort();
+          const card = document.createElement("article");
+          card.className = "card chart-card";
+
+          const header = document.createElement("div");
+          header.className = "card-header";
+          const title = document.createElement("h2");
+          title.textContent = "Раздел модели: " + modelDisciplineName;
+          header.appendChild(title);
+          card.appendChild(header);
+
+          const hint = document.createElement("p");
+          hint.className = "card-hint";
+          const filesText = modelFiles.length > 0
+            ? ("Файлы: " + modelFiles.join(", ") + ". ")
+            : "";
+          hint.textContent = filesText + (percentMode
+            ? ("Полоска = этаж. Цвет сегмента = " + segmentLabel.toLowerCase() + " (сумма ряда = 100%).")
+            : ("Полоска = этаж. Цвет сегмента = " + segmentLabel.toLowerCase() + "."));
+          card.appendChild(hint);
+
+          const chartDiv = document.createElement("div");
+          chartDiv.className = "chart";
+          chartDiv.dataset.title = sanitizeName("discipline_" + modelDisciplineName);
+          chartDiv.dataset.modelDiscipline = modelDisciplineName;
+          card.appendChild(chartDiv);
+
+          const actions = document.createElement("div");
+          actions.className = "card-actions";
+          const downloadBtn = document.createElement("button");
+          downloadBtn.type = "button";
+          downloadBtn.className = "chart-download";
+          downloadBtn.textContent = "Скачать PNG";
+          downloadBtn.addEventListener("click", function() {
+            downloadCardChart(card);
+          });
+          actions.appendChild(downloadBtn);
+          card.appendChild(actions);
+
+          chartsContainer.appendChild(card);
+
+          const floorOrder = {};
+          groupRecords.forEach(r => {
+            const floor = r.floor || "Без уровня";
+            const order = Number(r.floorOrder);
+            if (!Number.isNaN(order) && (!(floor in floorOrder) || order < floorOrder[floor])) {
+              floorOrder[floor] = order;
+            }
+          });
+
+          const floors = uniqueValues(groupRecords, "floor")
+            .sort((a, b) => (floorOrder[a] ?? Number.MAX_VALUE) - (floorOrder[b] ?? Number.MAX_VALUE));
+          const segments = uniqueValues(groupRecords, segmentKey).sort(compareSegments);
+          const traces = segments.map(segment =>
+            buildTrace(groupRecords, floors, segment, segmentKey, segmentLabel, percentMode));
+
+          plotHorizontalBarChart(chartDiv, traces, {
+            title: modelDisciplineName,
+            xTitle: percentMode ? "Доля, %" : "Количество пересечений",
+            yTitle: "Этаж / уровень",
+            legendTitle: segmentLabel,
+            barmode: "stack"
+          }).then(function(gd) {
+            gd.on("plotly_click", function(eventData) {
+              try {
+                if (!eventData || !eventData.points || !eventData.points.length) {
+                  return;
+                }
+                const point = eventData.points[0];
+                const floorName = (point.customdata && point.customdata[0]) || point.y || "";
+                const segmentName = (point.customdata && point.customdata[1]) || point.data.name || "";
+                openDrawer({
+                  modelDiscipline: modelDisciplineName,
+                  modelName: null,
+                  floor: floorName,
+                  segment: segmentName,
+                  segmentKey: segmentKey,
+                  segmentLabel: segmentLabel,
+                  sourceRecords: groupRecords
+                });
+              } catch (err) {
+                console.error(err);
+              }
+            });
+          });
+        });
+      }
+
+      /** Строит KPI-карточки и краткий narrative. */
+      function renderKpi(filteredPrimary, filteredAll, segmentKey, segmentLabel) {
+        const total = filteredPrimary.length;
+        const byStatus = countBy(filteredPrimary, r => r.status || "(пусто)");
+        const openCount = filteredPrimary.filter(r => OPEN_STATUSES[r.status]).length;
+        const openPct = total === 0 ? 0 : (openCount * 100 / total);
+        const modelDisciplinesCount = uniqueValues(filteredAll || filteredPrimary, "modelDiscipline").length;
+        const partnerDisciplinesCount = uniqueValues(filteredPrimary, "discipline").length;
+        const testsCount = uniqueValues(filteredPrimary, "testName").length;
+
+        const statusKeys = Object.keys(byStatus).sort(function(a, b) {
+          const ia = STATUS_ORDER.indexOf(a);
+          const ib = STATUS_ORDER.indexOf(b);
+          if (ia === -1 && ib === -1) return a.localeCompare(b);
+          if (ia === -1) return 1;
+          if (ib === -1) return -1;
+          return ia - ib;
+        });
+
+        kpiGrid.innerHTML = "";
+        appendKpi("Всего", String(total));
+        statusKeys.forEach(function(status) {
+          appendKpi(status, String(byStatus[status]));
+        });
+        appendKpi("Незакрытые", openCount + " (" + openPct.toFixed(1) + "%)");
+        appendKpi("Разделы моделей", String(modelDisciplinesCount));
+        appendKpi("Смежные разделы", String(partnerDisciplinesCount));
+        appendKpi("Проверки", String(testsCount));
+
+        if (total === 0) {
+          narrativeEl.textContent = "Нет данных по выбранным фильтрам.";
+          return;
+        }
+
+        const topFloor = topKey(countBy(filteredPrimary, r => r.floor || "Без уровня"));
+        const topSegment = topKey(countBy(filteredPrimary, r => normalizeSegment(r[segmentKey], segmentKey)));
+        narrativeEl.textContent =
+          "Всего " + total + " пересечений, незакрытых " + openPct.toFixed(1) + "%. " +
+          "Графиков разделов моделей: " + modelDisciplinesCount + ", смежных разделов в сегментах: " + partnerDisciplinesCount + ". " +
+          "Наибольшая концентрация: этаж «" + topFloor + "», " + segmentLabel.toLowerCase() + " «" + topSegment + "».";
+      }
+
+      /** Добавляет одну KPI-ячейку. */
+      function appendKpi(label, value) {
+        const item = document.createElement("div");
+        item.className = "kpi-item";
+        const valueEl = document.createElement("div");
+        valueEl.className = "kpi-value";
+        valueEl.textContent = value;
+        const labelEl = document.createElement("div");
+        labelEl.className = "kpi-label";
+        labelEl.textContent = label;
+        item.appendChild(valueEl);
+        item.appendChild(labelEl);
+        kpiGrid.appendChild(item);
+      }
+
+      /**
+       * Сводный stacked bar: все пересечения по этажам, цвет сегмента = раздел модели.
+       */
+      function renderSummaryFloorsChart(filtered, percentMode) {
+        if (!summaryFloorsChart) {
+          return;
+        }
+
+        if (summaryFloorsHint) {
+          summaryFloorsHint.textContent = percentMode
+            ? "Сводка по всем пересечениям: полоска = этаж, цвет = раздел модели (сумма ряда = 100%)."
+            : "Сводка по всем пересечениям: полоска = этаж, цвет сегмента = раздел модели.";
+        }
+
+        if (!filtered || filtered.length === 0) {
+          Plotly.purge(summaryFloorsChart);
+          summaryFloorsChart.innerHTML = '<div class="empty">Нет данных</div>';
+          return;
+        }
+
+        const segmentKey = "modelDiscipline";
+        const segmentLabel = "Раздел";
+        const floorOrder = {};
+        filtered.forEach(function(r) {
+          const floor = r.floor || "Без уровня";
+          const order = Number(r.floorOrder);
+          if (!Number.isNaN(order) && (!(floor in floorOrder) || order < floorOrder[floor])) {
+            floorOrder[floor] = order;
+          }
+        });
+
+        const floors = uniqueValues(filtered, "floor")
+          .sort(function(a, b) {
+            return (floorOrder[a] ?? Number.MAX_VALUE) - (floorOrder[b] ?? Number.MAX_VALUE);
+          });
+        const segments = uniqueValues(filtered, segmentKey).sort(function(a, b) {
+          return String(a || "").localeCompare(String(b || ""));
+        });
+
+        if (floors.length === 0 || segments.length === 0) {
+          Plotly.purge(summaryFloorsChart);
+          summaryFloorsChart.innerHTML = '<div class="empty">Нет данных</div>';
+          return;
+        }
+
+        const traces = segments.map(function(segment) {
+          return buildTrace(filtered, floors, segment, segmentKey, segmentLabel, percentMode);
+        });
+
+        plotHorizontalBarChart(summaryFloorsChart, traces, {
+          title: "Все пересечения по этажам",
+          xTitle: percentMode ? "Доля, %" : "Количество пересечений",
+          yTitle: "Этаж / уровень",
+          legendTitle: segmentLabel,
+          barmode: "stack"
+        }).then(function(gd) {
+          gd.on("plotly_click", function(eventData) {
+            try {
+              if (!eventData || !eventData.points || !eventData.points.length) {
+                return;
+              }
+              const point = eventData.points[0];
+              const floorName = (point.customdata && point.customdata[0]) || point.y || "";
+              const segmentName = (point.customdata && point.customdata[1]) || point.data.name || "";
+              openDrawer({
+                modelDiscipline: segmentName,
+                modelName: null,
+                floor: floorName,
+                segment: null,
+                gridAxes: null,
+                segmentKey: "discipline",
+                segmentLabel: "Смежный раздел",
+                sourceRecords: filtered
+              });
+            } catch (err) {
+              console.error(err);
+            }
+          });
+        });
+      }
+
+      /** Строит barplot горячих точек и топ разделов. */
+      function renderHotspotCharts(filteredPrimary, filteredAll, segmentKey, segmentLabel) {
+        hotspotsFloorHint.textContent =
+          "Топ-" + HOTSPOT_LIMIT + " мест: этаж × " + segmentLabel.toLowerCase() +
+          ". Клик по столбцу открывает список коллизий.";
+        hotspotsAxesHint.textContent =
+          "Топ-" + HOTSPOT_LIMIT + " мест: этаж × оси × " + segmentLabel.toLowerCase() +
+          ". Клик по столбцу открывает список коллизий.";
+        hotspotsDisciplineHint.textContent =
+          "Топ-" + HOTSPOT_LIMIT + " разделов моделей (по ним строятся графики ниже). Внутри столбца — файлы моделей.";
+        if (hotspotsPartnerHint) {
+          hotspotsPartnerHint.textContent =
+            "Топ-" + HOTSPOT_LIMIT + " смежных разделов (это сегменты полосок на графиках).";
+        }
+
+        const floorRows = buildHotspotRows(filteredPrimary, segmentKey, false);
+        const axesRows = buildHotspotRows(filteredPrimary, segmentKey, true);
+
+        plotHotspotBar(hotspotsFloorChart, floorRows, segmentLabel, filteredPrimary, segmentKey, false, "Топ пересечений по этажам");
+        plotHotspotBar(hotspotsAxesChart, axesRows, segmentLabel, filteredPrimary, segmentKey, true, "Топ пересечений по этажам и осям");
+        // Топ разделов моделей — с зеркалами, иначе второй участник проверки не попадает в рейтинг.
+        plotDisciplineByModelBar(
+          hotspotsDisciplineChart,
+          filteredAll,
+          "modelDiscipline",
+          "modelName",
+          "Топ разделов моделей",
+          "Раздел модели",
+          "Модель");
+        plotDisciplineByModelBar(
+          hotspotsPartnerChart,
+          filteredPrimary,
+          "discipline",
+          "item2Model",
+          "Топ смежных разделов",
+          "Смежный раздел",
+          "Файл смежника");
+      }
+
+      /** Рисует топ разделов со стеком по моделям/файлам внутри раздела. */
+      function plotDisciplineByModelBar(chartEl, filtered, disciplineKey, modelKey, chartTitle, yTitle, legendTitle) {
+        if (!chartEl) {
+          return;
+        }
+
+        if (!filtered || filtered.length === 0) {
+          Plotly.purge(chartEl);
+          chartEl.innerHTML = '<div class="empty">Нет данных</div>';
+          return;
+        }
+
+        const totals = {};
+        filtered.forEach(function(r) {
+          const discipline = r[disciplineKey] || "Без раздела";
+          totals[discipline] = (totals[discipline] || 0) + 1;
+        });
+
+        const topDisciplines = Object.keys(totals)
+          .sort(function(a, b) {
+            return totals[b] - totals[a] || a.localeCompare(b);
+          })
+          .slice(0, HOTSPOT_LIMIT)
+          .reverse();
+
+        if (topDisciplines.length === 0) {
+          Plotly.purge(chartEl);
+          chartEl.innerHTML = '<div class="empty">Нет данных</div>';
+          return;
+        }
+
+        const topSet = {};
+        topDisciplines.forEach(function(d) { topSet[d] = true; });
+
+        const models = uniqueValues(
+          filtered.filter(function(r) { return topSet[r[disciplineKey] || "Без раздела"]; }),
+          modelKey
+        ).sort();
+
+        const modelColorMap = new Map();
+        const traces = models.map(function(modelName, index) {
+          const name = modelName || "Без модели";
+          if (!modelColorMap.has(name)) {
+            modelColorMap.set(name, DISCIPLINE_PALETTE[index % DISCIPLINE_PALETTE.length]);
+          }
+
+          const x = [];
+          const y = [];
+          const customdata = [];
+          topDisciplines.forEach(function(discipline) {
+            const count = filtered.filter(function(r) {
+              return (r[disciplineKey] || "Без раздела") === discipline
+                && ((r[modelKey] || "Без модели") === name);
+            }).length;
+            x.push(count);
+            y.push(discipline);
+            customdata.push([discipline, name]);
+          });
+
+          return {
+            type: "bar",
+            orientation: "h",
+            name: name,
+            x: x,
+            y: y,
+            customdata: customdata,
+            marker: { color: modelColorMap.get(name) },
+            hovertemplate:
+              yTitle + ": %{customdata[0]}<br>" +
+              legendTitle + ": %{customdata[1]}<br>" +
+              "Количество: %{x}<extra></extra>"
+          };
+        });
+
+        plotHorizontalBarChart(chartEl, traces, {
+          title: chartTitle,
+          xTitle: "Количество пересечений",
+          yTitle: yTitle,
+          legendTitle: legendTitle,
+          barmode: "stack"
+        }).then(function(gd) {
+          gd.on("plotly_click", function(eventData) {
+            try {
+              if (!eventData || !eventData.points || !eventData.points.length) {
+                return;
+              }
+              const point = eventData.points[0];
+              const cd = point.customdata || [];
+              const disciplineValue = cd[0] || point.y || "";
+              const modelValue = cd[1] || point.data.name || "";
+              if (disciplineKey === "modelDiscipline") {
+                openDrawer({
+                  modelDiscipline: disciplineValue,
+                  modelName: modelValue || null,
+                  floor: null,
+                  segment: null,
+                  gridAxes: null,
+                  segmentKey: "discipline",
+                  segmentLabel: "Смежный раздел",
+                  sourceRecords: filtered
+                });
+              } else {
+                openDrawer({
+                  modelDiscipline: null,
+                  modelName: null,
+                  partnerDiscipline: disciplineValue,
+                  partnerModel: modelValue || null,
+                  floor: null,
+                  segment: disciplineValue,
+                  segmentKey: "discipline",
+                  segmentLabel: "Смежный раздел",
+                  sourceRecords: filtered
+                });
+              }
+            } catch (err) {
+              console.error(err);
+            }
+          });
+        });
+      }
+
+      /** Агрегирует топ комбинаций для hotspots. */
+      function buildHotspotRows(filtered, segmentKey, includeAxes) {
+        const pairs = {};
+        filtered.forEach(function(r) {
+          const floor = r.floor || "Без уровня";
+          const axes = r.gridAxes || "Нет пересечения осей";
+          const segment = normalizeSegment(r[segmentKey], segmentKey);
+          const key = includeAxes
+            ? (floor + "\0" + axes + "\0" + segment)
+            : (floor + "\0" + segment);
+          if (!pairs[key]) {
+            pairs[key] = { floor: floor, gridAxes: axes, segment: segment, count: 0 };
+          }
+          pairs[key].count += 1;
+        });
+
+        return Object.keys(pairs).map(function(k) { return pairs[k]; })
+          .sort(function(a, b) {
+            return b.count - a.count
+              || a.floor.localeCompare(b.floor)
+              || String(a.gridAxes || "").localeCompare(String(b.gridAxes || ""))
+              || a.segment.localeCompare(b.segment);
+          })
+          .slice(0, HOTSPOT_LIMIT)
+          .reverse();
+      }
+
+      /** Рисует горизонтальный barplot горячих точек. */
+      function plotHotspotBar(chartEl, rows, segmentLabel, filtered, segmentKey, includeAxes, chartTitle) {
+        if (!chartEl) {
+          return;
+        }
+
+        if (!rows || rows.length === 0) {
+          Plotly.purge(chartEl);
+          chartEl.innerHTML = '<div class="empty">Нет данных</div>';
+          return;
+        }
+
+        const y = rows.map(function(row) {
+          return includeAxes
+            ? (row.floor + " · " + row.gridAxes + " · " + row.segment)
+            : (row.floor + " · " + row.segment);
+        });
+        const x = rows.map(function(row) { return row.count; });
+        const customdata = rows.map(function(row) {
+          return [row.floor, row.gridAxes || "", row.segment, includeAxes ? 1 : 0];
+        });
+        const colors = rows.map(function(row) {
+          return colorForSegment(row.segment, segmentKey);
+        });
+
+        const uniqueSegments = [];
+        rows.forEach(function(row) {
+          const seg = normalizeSegment(row.segment, segmentKey);
+          if (uniqueSegments.indexOf(seg) === -1) {
+            uniqueSegments.push(seg);
+          }
+        });
+        uniqueSegments.sort(function(a, b) {
+          return compareSegments(a, b);
+        });
+
+        const mainTrace = {
+          type: "bar",
+          orientation: "h",
+          x: x,
+          y: y,
+          customdata: customdata,
+          marker: { color: colors },
+          showlegend: false,
+          hovertemplate:
+            "Этаж: %{customdata[0]}<br>" +
+            (includeAxes ? "Оси: %{customdata[1]}<br>" : "") +
+            segmentLabel + ": %{customdata[2]}<br>" +
+            "Количество: %{x}<extra></extra>"
+        };
+        const traces = [mainTrace].concat(buildLegendOnlyTraces(uniqueSegments, segmentKey));
+
+        plotHorizontalBarChart(chartEl, traces, {
+          title: chartTitle,
+          xTitle: "Количество пересечений",
+          yTitle: includeAxes ? "Этаж · оси · сегмент" : "Этаж · сегмент",
+          legendTitle: segmentLabel,
+          barmode: "relative",
+          minLeftMargin: 180,
+          maxLeftMargin: 480
+        }).then(function(gd) {
+          gd.on("plotly_click", function(eventData) {
+            try {
+              if (!eventData || !eventData.points || !eventData.points.length) {
+                return;
+              }
+              const point = eventData.points[0];
+              if (point.data && point.data.showlegend && !point.data.customdata) {
+                return;
+              }
+              const cd = point.customdata || [];
+              openDrawer({
+                modelName: null,
+                floor: cd[0] || "",
+                gridAxes: cd[3] ? (cd[1] || "") : null,
+                segment: cd[2] || "",
+                segmentKey: segmentKey,
+                segmentLabel: segmentLabel,
+                sourceRecords: filtered
+              });
+            } catch (err) {
+              console.error(err);
+            }
+          });
+        });
+      }
+
+      /** Строит trace для сегмента stacked bar. */
+      function buildTrace(recordsByModel, floors, segment, segmentKey, segmentLabel, percentMode) {
+        const x = [];
+        const y = [];
+        const customdata = [];
+        const segmentName = normalizeSegment(segment, segmentKey);
+
+        floors.forEach(function(floor) {
+          const floorName = floor || "Без уровня";
+          const row = recordsByModel.filter(r => (r.floor || "Без уровня") === floor);
+          const total = row.length;
+          const hit = row.filter(r => normalizeSegment(r[segmentKey], segmentKey) === segmentName).length;
+          const value = percentMode ? (total === 0 ? 0 : (hit * 100 / total)) : hit;
+          x.push(Number(value.toFixed(2)));
+          y.push(floorName);
+          customdata.push([floorName, segmentName, percentMode ? "%" : "шт."]);
+        });
+
+        return {
+          type: "bar",
+          orientation: "h",
+          name: segmentName,
+          x: x,
+          y: y,
+          customdata: customdata,
+          marker: { color: colorForSegment(segmentName, segmentKey) },
+          hovertemplate:
+            "Этаж: %{customdata[0]}<br>" +
+            segmentLabel + ": %{customdata[1]}<br>" +
+            "Значение: %{x} %{customdata[2]}<extra></extra>"
+        };
+      }
+
+      /** Открывает drawer со списком коллизий по срезу. */
+      function openDrawer(opts) {
+        try {
+          const source = Array.isArray(opts.sourceRecords) ? opts.sourceRecords : records.filter(matchFilters);
+          sliceRecords = source.filter(function(r) {
+            const floorOk = opts.floor == null || ((r.floor || "Без уровня") === opts.floor);
+            const segmentOk = opts.segment == null
+              || !opts.segmentKey
+              || (normalizeSegment(r[opts.segmentKey], opts.segmentKey) === opts.segment);
+            const modelOk = !opts.modelName || ((r.modelName || "Без модели") === opts.modelName);
+            const modelDisciplineOk = opts.modelDiscipline == null
+              || ((r.modelDiscipline || "Без раздела") === opts.modelDiscipline);
+            const partnerDisciplineOk = opts.partnerDiscipline == null
+              || ((r.discipline || "Без раздела") === opts.partnerDiscipline);
+            const partnerModelOk = opts.partnerModel == null
+              || ((r.item2Model || "Без модели") === opts.partnerModel);
+            const axesOk = opts.gridAxes == null
+              || ((r.gridAxes || "Нет пересечения осей") === opts.gridAxes);
+            return floorOk && segmentOk && modelOk && modelDisciplineOk && partnerDisciplineOk && partnerModelOk && axesOk;
+          });
+
+          const totalUnique = dedupeByGuid(sliceRecords).length;
+          const shown = dedupeByGuid(sliceRecords).slice(0, DETAIL_LIMIT);
+          drawerTitle.textContent = "Детализация";
+          drawerMeta.textContent =
+            (opts.modelDiscipline != null ? ("Раздел модели: " + opts.modelDiscipline + ". ") : "") +
+            (opts.partnerDiscipline != null ? ("Смежный раздел: " + opts.partnerDiscipline + ". ") : "") +
+            (opts.modelName ? ("Файл модели: " + opts.modelName + ". ") : "") +
+            (opts.partnerModel ? ("Файл смежника: " + opts.partnerModel + ". ") : "") +
+            (opts.floor != null ? ("Этаж: " + opts.floor + ". ") : "") +
+            (opts.gridAxes != null ? ("Оси: " + opts.gridAxes + ". ") : "") +
+            (opts.segment != null && opts.partnerDiscipline == null
+              ? ((opts.segmentLabel || "Сегмент") + ": " + opts.segment + ". ")
+              : "") +
+            "Найдено: " + totalUnique +
+            (totalUnique > DETAIL_LIMIT ? (" (показаны первые " + DETAIL_LIMIT + ")") : "") + ".";
+
+          drawerBody.innerHTML = "";
+          if (shown.length === 0) {
+            const emptyRow = document.createElement("tr");
+            emptyRow.innerHTML = '<td colspan="9" class="table-empty">Нет коллизий в срезе</td>';
+            drawerBody.appendChild(emptyRow);
+          } else {
+            shown.forEach(function(r) {
+              const tr = document.createElement("tr");
+              tr.innerHTML =
+                "<td>" + escapeHtml(r.clashName || "") + "</td>" +
+                "<td>" + escapeHtml(r.item1Model || r.modelName || "") + "</td>" +
+                "<td class=\"mono col-id\">" + escapeHtml(r.item1Id || "") + "</td>" +
+                "<td>" + escapeHtml(r.item1Name || "") + "</td>" +
+                "<td>" + escapeHtml(r.item2Model || "") + "</td>" +
+                "<td class=\"mono col-id\">" + escapeHtml(r.item2Id || "") + "</td>" +
+                "<td>" + escapeHtml(r.item2Name || "") + "</td>" +
+                "<td>" + escapeHtml(r.status || "") + "</td>" +
+                "<td>" + escapeHtml(r.testName || "") + "</td>";
+              drawerBody.appendChild(tr);
+            });
+          }
+
+          detailDrawer.hidden = false;
+          document.body.classList.add("drawer-open");
+        } catch (err) {
+          console.error(err);
+        }
+      }
+
+      /** Закрывает панель детализации. */
+      function closeDrawer() {
+        detailDrawer.hidden = true;
+        document.body.classList.remove("drawer-open");
+        sliceRecords = [];
+      }
+
+      /** Перерисовывает все графики Plotly после смены масштаба или окна. */
+      function resizeAllCharts() {
+        try {
+          document.querySelectorAll(".chart").forEach(function(el) {
+            try {
+              Plotly.Plots.resize(el);
+            } catch (innerErr) {
+              /* график мог быть ещё не построен */
+            }
+          });
+        } catch (err) {
+          console.error(err);
+        }
+      }
+
+      /** Масштаб всего содержимого отчёта (− / + / сброс). */
+      function initUiZoom() {
+        try {
+          const STORAGE_KEY = "clash-dashboard-ui-zoom";
+          const MIN = 0.75;
+          const MAX = 1.5;
+          const STEP = 0.1;
+          const label = document.getElementById("zoomLabel");
+          let zoom = 1;
+
+          try {
+            const saved = parseFloat(localStorage.getItem(STORAGE_KEY) || "");
+            if (!isNaN(saved) && saved >= MIN && saved <= MAX) {
+              zoom = saved;
+            }
+          } catch (e) { /* localStorage недоступен */ }
+
+          function applyZoom() {
+            zoom = Math.round(zoom * 100) / 100;
+            document.documentElement.style.setProperty("--ui-zoom", String(zoom));
+            if (label) {
+              label.textContent = Math.round(zoom * 100) + "%";
+            }
+            try {
+              localStorage.setItem(STORAGE_KEY, String(zoom));
+            } catch (e) { /* ignore */ }
+            window.setTimeout(resizeAllCharts, 50);
+          }
+
+          document.getElementById("zoomOut").addEventListener("click", function() {
+            zoom = Math.max(MIN, zoom - STEP);
+            applyZoom();
+          });
+          document.getElementById("zoomIn").addEventListener("click", function() {
+            zoom = Math.min(MAX, zoom + STEP);
+            applyZoom();
+          });
+          document.getElementById("zoomReset").addEventListener("click", function() {
+            zoom = 1;
+            applyZoom();
+          });
+
+          applyZoom();
+        } catch (err) {
+          console.error(err);
+        }
+      }
+
+      /** Изменение ширины панели детализации перетаскиванием левого края. */
+      function initDrawerResize() {
+        try {
+          const STORAGE_KEY = "clash-dashboard-drawer-width";
+          const resizer = document.getElementById("drawerResizer");
+          const panel = document.getElementById("drawerPanel");
+          if (!resizer || !panel) {
+            return;
+          }
+
+          try {
+            const saved = parseInt(localStorage.getItem(STORAGE_KEY) || "", 10);
+            if (!isNaN(saved) && saved >= 420) {
+              document.documentElement.style.setProperty("--drawer-width", saved + "px");
+            }
+          } catch (e) { /* ignore */ }
+
+          let startX = 0;
+          let startWidth = 0;
+
+          function onMove(event) {
+            try {
+              const delta = startX - event.clientX;
+              const next = Math.min(Math.max(startWidth + delta, 420), Math.floor(window.innerWidth * 0.98));
+              document.documentElement.style.setProperty("--drawer-width", next + "px");
+            } catch (err) {
+              console.error(err);
+            }
+          }
+
+          function onUp() {
+            try {
+              document.body.classList.remove("is-resizing-drawer");
+              document.removeEventListener("mousemove", onMove);
+              document.removeEventListener("mouseup", onUp);
+              const widthPx = panel.getBoundingClientRect().width;
+              try {
+                localStorage.setItem(STORAGE_KEY, String(Math.round(widthPx)));
+              } catch (e) { /* ignore */ }
+            } catch (err) {
+              console.error(err);
+            }
+          }
+
+          resizer.addEventListener("mousedown", function(event) {
+            try {
+              event.preventDefault();
+              startX = event.clientX;
+              startWidth = panel.getBoundingClientRect().width;
+              document.body.classList.add("is-resizing-drawer");
+              document.addEventListener("mousemove", onMove);
+              document.addEventListener("mouseup", onUp);
+            } catch (err) {
+              console.error(err);
+            }
+          });
+        } catch (err) {
+          console.error(err);
+        }
+      }
+
+      /** Изменение ширины столбцов таблицы детализации. */
+      function initColumnResize(table) {
+        try {
+          if (!table) {
+            return;
+          }
+          const STORAGE_KEY = "clash-dashboard-col-widths";
+          const headers = Array.from(table.querySelectorAll("thead th"));
+          let savedWidths = {};
+
+          try {
+            savedWidths = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}") || {};
+          } catch (e) {
+            savedWidths = {};
+          }
+
+          const defaults = {
+            clash: 140,
+            model1: 160,
+            id1: 140,
+            item1: 180,
+            model2: 160,
+            id2: 140,
+            item2: 180,
+            status: 110,
+            test: 160
+          };
+
+          headers.forEach(function(th) {
+            const key = th.getAttribute("data-col") || th.textContent.trim();
+            const width = savedWidths[key] || defaults[key] || 140;
+            th.style.width = width + "px";
+            th.style.minWidth = "60px";
+
+            const handle = document.createElement("span");
+            handle.className = "col-resizer";
+            handle.title = "Изменить ширину столбца";
+            th.appendChild(handle);
+
+            let startX = 0;
+            let startWidth = 0;
+
+            function onMove(event) {
+              try {
+                const next = Math.max(60, startWidth + (event.clientX - startX));
+                th.style.width = next + "px";
+              } catch (err) {
+                console.error(err);
+              }
+            }
+
+            function onUp() {
+              try {
+                handle.classList.remove("is-active");
+                document.body.classList.remove("is-resizing-col");
+                document.removeEventListener("mousemove", onMove);
+                document.removeEventListener("mouseup", onUp);
+                const keyName = th.getAttribute("data-col") || th.textContent.trim();
+                savedWidths[keyName] = Math.round(th.getBoundingClientRect().width);
+                try {
+                  localStorage.setItem(STORAGE_KEY, JSON.stringify(savedWidths));
+                } catch (e) { /* ignore */ }
+              } catch (err) {
+                console.error(err);
+              }
+            }
+
+            handle.addEventListener("mousedown", function(event) {
+              try {
+                event.preventDefault();
+                event.stopPropagation();
+                startX = event.clientX;
+                startWidth = th.getBoundingClientRect().width;
+                handle.classList.add("is-active");
+                document.body.classList.add("is-resizing-col");
+                document.addEventListener("mousemove", onMove);
+                document.addEventListener("mouseup", onUp);
+              } catch (err) {
+                console.error(err);
+              }
+            });
+          });
+        } catch (err) {
+          console.error(err);
+        }
+      }
+
+      /** Скачивает PNG графика из карточки с правой легендой и повышенным разрешением. */
+      async function downloadCardChart(card) {
+        if (!card) {
+          return;
+        }
+        const chart = card.querySelector(".chart");
+        if (!chart || !chart.data) {
+          return;
+        }
+
+        try {
+          const filename = chart.dataset.title || "clash-dashboard";
+          const traces = chart.data;
+          const yLabels = collectYLabels(traces);
+          const legendItems = getLegendItemsFromTraces(traces);
+          const rowCount = countYRowsFromTraces(traces);
+          const currentLayout = chart.layout || {};
+          const titleText = (currentLayout.title && currentLayout.title.text) || "";
+          const xTitle = (currentLayout.xaxis && currentLayout.xaxis.title && currentLayout.xaxis.title.text) || "";
+          const yTitle = (currentLayout.yaxis && currentLayout.yaxis.title && currentLayout.yaxis.title.text) || "";
+          const legendTitle = (currentLayout.legend && currentLayout.legend.title && currentLayout.legend.title.text) || "";
+          const barmode = currentLayout.barmode || "relative";
+
+          const screenLayout = buildChartLayout({
+            title: titleText,
+            xTitle: xTitle,
+            yTitle: yTitle,
+            legendTitle: legendTitle,
+            yLabels: yLabels,
+            rowCount: rowCount,
+            legendItems: legendItems,
+            legendSide: legendItems.length > 6 ? "right" : "top",
+            barmode: barmode,
+            mode: "screen"
+          });
+
+          const exportLayout = buildChartLayout({
+            title: titleText,
+            xTitle: xTitle,
+            yTitle: yTitle,
+            legendTitle: legendTitle,
+            yLabels: yLabels,
+            rowCount: rowCount,
+            legendItems: legendItems,
+            legendSide: "right",
+            barmode: barmode,
+            mode: "export"
+          });
+
+          const exportHeight = computeChartHeight(rowCount, 0);
+          const exportWidth = EXPORT_BASE_WIDTH;
+
+          await Plotly.relayout(chart, stripLayoutMeta(exportLayout));
+          await Plotly.Plots.resize(chart, exportWidth, exportHeight);
+
+          await Plotly.downloadImage(chart, {
+            format: "png",
+            width: exportWidth,
+            height: exportHeight,
+            scale: EXPORT_SCALE,
+            filename: filename
+          });
+
+          await Plotly.relayout(chart, stripLayoutMeta(screenLayout));
+          await Plotly.Plots.resize(chart);
+          finalizeChartSize(chart, screenLayout);
+        } catch (err) {
+          console.error(err);
+        }
+      }
+
+      /** Выгружает записи в CSV-файл. */
+      function downloadCsv(items, filename) {
+        try {
+          const rows = Array.isArray(items) ? items : [];
+          const headers = ["testName", "modelName", "floor", "floorOrder", "gridAxes", "modelDiscipline", "discipline", "status", "clashName", "guid", "item1Model", "item1Id", "item1Name", "item2Model", "item2Id", "item2Name"];
+          const lines = [headers.join(";")];
+          rows.forEach(function(r) {
+            lines.push(headers.map(function(h) {
+              return csvEscape(r && r[h] != null ? String(r[h]) : "");
+            }).join(";"));
+          });
+          const blob = new Blob(["\uFEFF" + lines.join("\r\n")], { type: "text/csv;charset=utf-8;" });
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement("a");
+          link.href = url;
+          link.download = filename || "clash-dashboard.csv";
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          URL.revokeObjectURL(url);
+        } catch (err) {
+          console.error(err);
+        }
+      }
+
+      /** Экранирует значение для CSV. */
+      function csvEscape(value) {
+        if (/[;"\r\n]/.test(value)) {
+          return '"' + value.replace(/"/g, '""') + '"';
+        }
+        return value;
+      }
+
+      /** Экранирует HTML-текст. */
+      function escapeHtml(value) {
+        return String(value)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
+      }
+
+      /** Нормализует имя сегмента. */
+      function normalizeSegment(value, segmentKey) {
+        if (value) {
+          return value;
+        }
+        return segmentKey === "status" ? "Без статуса" : "Без раздела";
+      }
+
+      /** Цвет сегмента: фиксированный для статусов, палитра для разделов. */
+      function colorForSegment(segmentName, segmentKey) {
+        if (segmentKey === "status" && STATUS_PALETTE[segmentName]) {
+          return STATUS_PALETTE[segmentName];
+        }
+        if (!colorMap.has(segmentName)) {
+          colorMap.set(segmentName, DISCIPLINE_PALETTE[colorMap.size % DISCIPLINE_PALETTE.length]);
+        }
+        return colorMap.get(segmentName);
+      }
+
+      /** Сортировка сегментов: статусы по порядку процесса, иначе по имени. */
+      function compareSegments(a, b) {
+        if (getStackMode() !== "status") {
+          return String(a || "").localeCompare(String(b || ""));
+        }
+        const ia = STATUS_ORDER.indexOf(a);
+        const ib = STATUS_ORDER.indexOf(b);
+        if (ia === -1 && ib === -1) return String(a || "").localeCompare(String(b || ""));
+        if (ia === -1) return 1;
+        if (ib === -1) return -1;
+        return ia - ib;
+      }
+
+      /** Подсчёт записей по ключу. */
+      function countBy(items, keySelector) {
+        return items.reduce(function(acc, item) {
+          const key = keySelector(item);
+          acc[key] = (acc[key] || 0) + 1;
+          return acc;
+        }, {});
+      }
+
+      /** Возвращает ключ с максимальным count. */
+      function topKey(map) {
+        let best = "";
+        let bestCount = -1;
+        Object.keys(map).forEach(function(key) {
+          if (map[key] > bestCount) {
+            best = key;
+            bestCount = map[key];
+          }
+        });
+        return best || "-";
+      }
+
+      /** Проверяет запись на соответствие фильтрам. */
+      function matchFilters(record) {
+        return inSelection(filterTests, record.testName)
+          && inSelection(filterStatuses, record.status)
+          && matchModelFilter(record)
+          && inSelection(filterFloors, record.floor)
+          && inSelection(filterModelDisciplines, record.modelDiscipline)
+          && inSelection(filterPartnerDisciplines, record.discipline);
+      }
+
+      /** Фильтр по файлу модели: учитывает обе стороны пересечения. */
+      function matchModelFilter(record) {
+        const selected = Array.from(filterModels.selectedOptions).map(function(x) { return x.value; });
+        if (selected.length === 0) {
+          return true;
+        }
+        const names = [
+          record.modelName || "",
+          record.item1Model || "",
+          record.item2Model || ""
+        ];
+        return names.some(function(name) { return selected.includes(name); });
+      }
+
+      /** Только исходные записи без зеркальной перспективы. */
+      function primaryOnly(items) {
+        return (items || []).filter(function(r) { return !r || !r.isMirror; });
+      }
+
+      /**
+       * Добавляет зеркальные перспективы: сторона 2 становится «разделом модели».
+       * Нужно, чтобы пересечение ВК↔ОВ2 отображалось на обоих графиках.
+       */
+      function expandMirrorRecords(items) {
+        const result = [];
+        (items || []).forEach(function(r) {
+          if (!r) {
+            return;
+          }
+          if (r.isMirror) {
+            result.push(r);
+            return;
+          }
+
+          result.push(r);
+          const modelDiscipline = String(r.modelDiscipline || "Без раздела").trim();
+          const partnerDiscipline = String(r.discipline || "Без раздела").trim();
+          if (!modelDiscipline || !partnerDiscipline) {
+            return;
+          }
+          if (modelDiscipline.toLowerCase() === partnerDiscipline.toLowerCase()) {
+            return;
+          }
+
+          result.push({
+            testName: r.testName,
+            modelName: r.item2Model || r.modelName,
+            floor: r.floor,
+            floorOrder: r.floorOrder,
+            gridAxes: r.gridAxes,
+            discipline: modelDiscipline,
+            modelDiscipline: partnerDiscipline,
+            status: r.status,
+            clashName: r.clashName,
+            guid: r.guid,
+            item1Id: r.item2Id,
+            item2Id: r.item1Id,
+            item1Name: r.item2Name,
+            item2Name: r.item1Name,
+            item1Model: r.item2Model,
+            item2Model: r.item1Model,
+            isMirror: true
+          });
+        });
+        return result;
+      }
+
+      /** Убирает дубликаты одной коллизии (guid), предпочитая перспективу текущего графика. */
+      function dedupeByGuid(items) {
+        const map = new Map();
+        (items || []).forEach(function(r) {
+          if (!r) {
+            return;
+          }
+          const key = r.guid || [r.clashName, r.item1Id, r.item2Id, r.testName].join("|");
+          const existing = map.get(key);
+          if (!existing) {
+            map.set(key, r);
+            return;
+          }
+          // Предпочитаем незеркальную запись, если обе попали в срез.
+          if (existing.isMirror && !r.isMirror) {
+            map.set(key, r);
+          }
+        });
+        return Array.from(map.values());
+      }
+
+      /** Собирает уникальные имена файлов моделей с обеих сторон. */
+      function collectModelNames(items) {
+        const set = new Set();
+        (items || []).forEach(function(r) {
+          [r.modelName, r.item1Model, r.item2Model].forEach(function(name) {
+            if (name) {
+              set.add(name);
+            }
+          });
+        });
+        return Array.from(set).sort(function(a, b) { return a.localeCompare(b); });
+      }
+
+      /** Проверяет значение в multi-select (пусто = все). */
+      function inSelection(select, value) {
+        const selected = Array.from(select.selectedOptions).map(x => x.value);
+        if (selected.length === 0) return true;
+        return selected.includes(value || "");
+      }
+
+      /** Сбрасывает выделение multi-select. */
+      function clearSelection(select) {
+        Array.from(select.options).forEach(o => { o.selected = false; });
+      }
+
+      /** Заполняет options в select. */
+      function fillOptions(select, values) {
+        select.innerHTML = "";
+        values.forEach(v => {
+          const option = document.createElement("option");
+          option.value = v || "";
+          option.textContent = v || "(пусто)";
+          select.appendChild(option);
+        });
+      }
+
+      /** Уникальные значения поля. */
+      function uniqueValues(items, key) {
+        return Array.from(new Set(items.map(i => i[key] || "")));
+      }
+
+      /** Группировка массива по ключу. */
+      function groupBy(items, keySelector) {
+        return items.reduce((acc, item) => {
+          const key = keySelector(item);
+          if (!acc[key]) acc[key] = [];
+          acc[key].push(item);
+          return acc;
+        }, {});
+      }
+
+      /** Безопасное имя файла. */
+      function sanitizeName(name) {
+        return (name || "chart").replace(/[^\w\d\-]+/g, "_");
+      }
+    })();
+  </script>
+</body>
+</html>

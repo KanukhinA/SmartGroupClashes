@@ -16,7 +16,7 @@
                                     Size="Large"
                                     KeyTip="B1"
                                     ShowText="True"   
-                                    Text="Группировать пересечения"
+                                    Text="Smart"
                                     Orientation="Vertical"/>
 
             </RibbonPanelSource>

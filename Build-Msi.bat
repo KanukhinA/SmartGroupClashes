@@ -2,7 +2,7 @@
 setlocal
 cd /d "%~dp0"
 
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0Installer\Build-Msi.ps1" %*
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0Installer\Build-Msi.ps1" -RemoveLegacyGroupClashes %*
 
 set EXITCODE=%ERRORLEVEL%
 endlocal & exit /b %EXITCODE%
