@@ -87,6 +87,8 @@
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Drawing" />
+    <Reference Include="System.Net.Http" />
+    <Reference Include="System.Security" />
     <Reference Include="System.Web.Extensions" />
     <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xaml" />
@@ -94,6 +96,13 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Ribbon\SmartNavisTools.cs" />
+    <Compile Include="ClashService\SpServiceSettings.cs" />
+    <Compile Include="ClashService\SpClashServiceClient.cs" />
+    <Compile Include="ClashService\SpClashServiceSession.cs" />
+    <Compile Include="ClashService\SpServiceSettingsForm.cs" />
+    <Compile Include="ClashService\SpClashReportPickForm.cs" />
+    <Compile Include="ClashService\SpClashSnapshotBuilder.cs" />
+    <Compile Include="ClashService\SpClashNativeReportImageHarvester.cs" />
     <Compile Include="Common\PluginPaneShell.xaml.cs" />
     <Compile Include="Common\PropertyCatalog.cs" />
     <Compile Include="Common\PropertyCategoryAmbiguity.cs" />

@@ -16,6 +16,7 @@ namespace SmartNavisTools
         public ClashStatusViewModel()
         {
             ImportCommand = new RelayCommand(ExecuteImport);
+            LoadFromServerCommand = new RelayCommand(ExecuteLoadFromServer);
             UpdateCommand = new RelayCommand(ExecuteUpdate, CanExecuteUpdate);
         }
 
@@ -49,8 +50,94 @@ namespace SmartNavisTools
         /// <summary>Команда импорта XML-файлов.</summary>
         public RelayCommand ImportCommand { get; }
 
+        /// <summary>Команда загрузки Clash Report XML с SP-Service.</summary>
+        public RelayCommand LoadFromServerCommand { get; }
+
         /// <summary>Команда обновления статусов в Clash Detective.</summary>
         public RelayCommand UpdateCommand { get; }
+
+        /// <summary>Загружает Clash Report XML с сервера и подставляет его в импорт.</summary>
+        private void ExecuteLoadFromServer()
+        {
+            string tempPath = null;
+            try
+            {
+                SpClashServiceClient client;
+                Guid projectId;
+                string error;
+                if (!SpClashServiceSession.TryOpen(out client, out projectId, out error))
+                {
+                    MessageBox.Show(
+                        error ?? "Не удалось подключиться к серверу.",
+                        "Загрузка с сервера",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Warning);
+                    return;
+                }
+
+                using (client)
+                {
+                    System.Collections.Generic.List<SpClashServiceClient.ReportItem> reports =
+                        client.GetReports(projectId);
+                    if (reports.Count == 0)
+                    {
+                        MessageBox.Show(
+                            "На сервере нет отчётов пересечений для выбранного проекта.",
+                            "Загрузка с сервера",
+                            MessageBoxButton.OK,
+                            MessageBoxImage.Information);
+                        return;
+                    }
+
+                    SpClashServiceClient.ReportItem selected;
+                    using (SpClashReportPickForm picker = new SpClashReportPickForm(reports))
+                    {
+                        if (picker.ShowDialog() != System.Windows.Forms.DialogResult.OK
+                            || picker.SelectedReport == null)
+                        {
+                            return;
+                        }
+
+                        selected = picker.SelectedReport;
+                    }
+
+                    byte[] xmlBytes = client.ExportXml(selected.Id);
+                    tempPath = System.IO.Path.Combine(
+                        System.IO.Path.GetTempPath(),
+                        "sp-clash-" + selected.Id.ToString("N") + ".xml");
+                    System.IO.File.WriteAllBytes(tempPath, xmlBytes);
+                }
+
+                ApplyImportedFiles(new[] { tempPath });
+                if (!_hasLoadedFiles)
+                {
+                    try
+                    {
+                        if (System.IO.File.Exists(tempPath))
+                            System.IO.File.Delete(tempPath);
+                    }
+                    catch
+                    {
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    "Ошибка загрузки с сервера: " + ex.Message,
+                    "Ошибка",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+                try
+                {
+                    if (!string.IsNullOrEmpty(tempPath) && System.IO.File.Exists(tempPath))
+                        System.IO.File.Delete(tempPath);
+                }
+                catch
+                {
+                }
+            }
+        }
 
         /// <summary>Выполняет импорт выбранных XML-файлов.</summary>
         private void ExecuteImport()
@@ -68,41 +155,7 @@ namespace SmartNavisTools
                     return;
                 }
 
-                ClashStatusUpdaterLogic.ImportResult result =
-                    ClashStatusUpdaterLogic.ImportFiles(dialog.FileNames);
-
-                if (!result.Success)
-                {
-                    PreviewText = string.Empty;
-                    _loadedFiles = Array.Empty<string>();
-                    HasLoadedFiles = false;
-                    SummaryText = string.Empty;
-                    MessageBox.Show(
-                        result.ErrorMessage,
-                        "Ошибка импорта",
-                        MessageBoxButton.OK,
-                        MessageBoxImage.Error);
-                    return;
-                }
-
-                if (!ConfirmPartialExport(dialog.FileNames[0]))
-                {
-                    PreviewText = string.Empty;
-                    _loadedFiles = Array.Empty<string>();
-                    HasLoadedFiles = false;
-                    SummaryText = string.Empty;
-                    return;
-                }
-
-                _loadedFiles = result.LoadedFiles;
-                HasLoadedFiles = _loadedFiles.Length > 0;
-                PreviewText = result.PreviewText;
-
-                string message = result.LoadedFiles.Length == 1
-                    ? "Загружен 1 XML-файл."
-                    : "Загружено файлов: " + result.LoadedFiles.Length + ".";
-                SummaryText = message;
-                MessageBox.Show(message, "Импорт", MessageBoxButton.OK, MessageBoxImage.Information);
+                ApplyImportedFiles(dialog.FileNames);
             }
             catch (Exception ex)
             {
@@ -112,6 +165,46 @@ namespace SmartNavisTools
                     MessageBoxButton.OK,
                     MessageBoxImage.Error);
             }
+        }
+
+        /// <summary>Разбирает XML и заполняет предпросмотр.</summary>
+        private void ApplyImportedFiles(string[] fileNames)
+        {
+            ClashStatusUpdaterLogic.ImportResult result =
+                ClashStatusUpdaterLogic.ImportFiles(fileNames);
+
+            if (!result.Success)
+            {
+                PreviewText = string.Empty;
+                _loadedFiles = Array.Empty<string>();
+                HasLoadedFiles = false;
+                SummaryText = string.Empty;
+                MessageBox.Show(
+                    result.ErrorMessage,
+                    "Ошибка импорта",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+                return;
+            }
+
+            if (!ConfirmPartialExport(fileNames[0]))
+            {
+                PreviewText = string.Empty;
+                _loadedFiles = Array.Empty<string>();
+                HasLoadedFiles = false;
+                SummaryText = string.Empty;
+                return;
+            }
+
+            _loadedFiles = result.LoadedFiles;
+            HasLoadedFiles = _loadedFiles.Length > 0;
+            PreviewText = result.PreviewText;
+
+            string message = result.LoadedFiles.Length == 1
+                ? "Загружен 1 XML-файл."
+                : "Загружено файлов: " + result.LoadedFiles.Length + ".";
+            SummaryText = message;
+            MessageBox.Show(message, "Импорт", MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
         /// <summary>Проверяет возможность обновления статусов.</summary>
@@ -168,10 +261,15 @@ namespace SmartNavisTools
                 var document = new System.Xml.XmlDocument();
                 document.Load(firstFilePath);
 
-                bool hasReviewedInSummary = HasPositiveSummary(document, "reviewed");
-                bool hasApprovedInSummary = HasPositiveSummary(document, "approved");
-                bool hasReviewedInResults = HasStatus(document, "reviewed");
-                bool hasApprovedInResults = HasStatus(document, "approved");
+                if (ClashStatusUpdaterLogic.IsSpServiceClashReport(document))
+                {
+                    return true;
+                }
+
+                bool hasReviewedInSummary = ClashStatusUpdaterLogic.DocumentHasPositiveSummary(document, "reviewed");
+                bool hasApprovedInSummary = ClashStatusUpdaterLogic.DocumentHasPositiveSummary(document, "approved");
+                bool hasReviewedInResults = ClashStatusUpdaterLogic.DocumentHasResultStatus(document, "reviewed");
+                bool hasApprovedInResults = ClashStatusUpdaterLogic.DocumentHasResultStatus(document, "approved");
 
                 if (hasReviewedInSummary && hasApprovedInSummary &&
                     hasReviewedInResults && !hasApprovedInResults)
@@ -192,6 +290,16 @@ namespace SmartNavisTools
                         MessageBoxButton.YesNo,
                         MessageBoxImage.Question) == MessageBoxResult.Yes;
                 }
+
+                if (hasReviewedInSummary && hasApprovedInSummary &&
+                    !hasReviewedInResults && !hasApprovedInResults)
+                {
+                    return MessageBox.Show(
+                        "В summary есть Reviewed и Approved, но в XML нет таких пересечений (часто из‑за фильтра Included Clashes или статуса в resultstatus). Продолжить загрузку?",
+                        "Подтверждение",
+                        MessageBoxButton.YesNo,
+                        MessageBoxImage.Question) == MessageBoxResult.Yes;
+                }
             }
             catch
             {
@@ -199,35 +307,6 @@ namespace SmartNavisTools
             }
 
             return true;
-        }
-
-        /// <summary>Проверяет наличие указанного статуса в результатах.</summary>
-        private static bool HasStatus(System.Xml.XmlDocument document, string status)
-        {
-            foreach (System.Xml.XmlElement element in document.GetElementsByTagName("clashresult"))
-            {
-                if (string.Equals(element.GetAttribute("status"), status, StringComparison.OrdinalIgnoreCase))
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        /// <summary>Проверяет наличие положительного значения атрибута в summary.</summary>
-        private static bool HasPositiveSummary(System.Xml.XmlDocument document, string attributeName)
-        {
-            foreach (System.Xml.XmlNode node in document.GetElementsByTagName("summary"))
-            {
-                System.Xml.XmlAttribute attribute = node.Attributes?[attributeName];
-                if (attribute != null && int.TryParse(attribute.Value, out int value) && value > 0)
-                {
-                    return true;
-                }
-            }
-
-            return false;
         }
     }
 }

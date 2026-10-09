@@ -42,3 +42,12 @@ ID_SmartNavisToolsClashDashboardButton.ToolTip=
 
 ID_SmartNavisToolsClashDashboardButton.ExtendedToolTip=
 Формирование HTML-отчета по коллизиям напрямую из Navisworks с фильтрацией и экспортом графиков в PNG
+
+ID_SmartNavisToolsSettingsButton.DisplayName=
+Настройки
+
+ID_SmartNavisToolsSettingsButton.ToolTip=
+Адрес SP-Service, логин и проект
+
+ID_SmartNavisToolsSettingsButton.ExtendedToolTip=
+Подключение плагина к SP-Service по HTTPS: адрес сервера, логин, пароль и проект для отчётов пересечений

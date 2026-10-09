@@ -155,10 +155,15 @@ namespace SmartNavisTools
                 var document = new System.Xml.XmlDocument();
                 document.Load(firstFilePath);
 
-                bool hasReviewedInSummary = HasPositiveSummary(document, "reviewed");
-                bool hasApprovedInSummary = HasPositiveSummary(document, "approved");
-                bool hasReviewedInResults = HasStatus(document, "reviewed");
-                bool hasApprovedInResults = HasStatus(document, "approved");
+                if (ClashStatusUpdaterLogic.IsSpServiceClashReport(document))
+                {
+                    return true;
+                }
+
+                bool hasReviewedInSummary = ClashStatusUpdaterLogic.DocumentHasPositiveSummary(document, "reviewed");
+                bool hasApprovedInSummary = ClashStatusUpdaterLogic.DocumentHasPositiveSummary(document, "approved");
+                bool hasReviewedInResults = ClashStatusUpdaterLogic.DocumentHasResultStatus(document, "reviewed");
+                bool hasApprovedInResults = ClashStatusUpdaterLogic.DocumentHasResultStatus(document, "approved");
 
                 if (hasReviewedInSummary && hasApprovedInSummary &&
                     hasReviewedInResults && !hasApprovedInResults)
@@ -179,6 +184,16 @@ namespace SmartNavisTools
                         MessageBoxButtons.YesNo,
                         MessageBoxIcon.Question) == DialogResult.Yes;
                 }
+
+                if (hasReviewedInSummary && hasApprovedInSummary &&
+                    !hasReviewedInResults && !hasApprovedInResults)
+                {
+                    return MessageBox.Show(
+                        "В summary есть Reviewed и Approved, но в XML нет таких пересечений (часто из‑за фильтра Included Clashes или статуса в resultstatus). Продолжить загрузку?",
+                        "Подтверждение",
+                        MessageBoxButtons.YesNo,
+                        MessageBoxIcon.Question) == DialogResult.Yes;
+                }
             }
             catch
             {
@@ -186,33 +201,6 @@ namespace SmartNavisTools
             }
 
             return true;
-        }
-
-        private static bool HasStatus(System.Xml.XmlDocument document, string status)
-        {
-            foreach (System.Xml.XmlElement element in document.GetElementsByTagName("clashresult"))
-            {
-                if (string.Equals(element.GetAttribute("status"), status, StringComparison.OrdinalIgnoreCase))
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        private static bool HasPositiveSummary(System.Xml.XmlDocument document, string attributeName)
-        {
-            foreach (System.Xml.XmlNode node in document.GetElementsByTagName("summary"))
-            {
-                System.Xml.XmlAttribute attribute = node.Attributes?[attributeName];
-                if (attribute != null && int.TryParse(attribute.Value, out int value) && value > 0)
-                {
-                    return true;
-                }
-            }
-
-            return false;
         }
     }
 }

@@ -49,6 +49,7 @@ namespace SmartNavisTools
             public bool Success { get; set; }
             public string ErrorMessage { get; set; }
             public int ExportedCount { get; set; }
+            public string WarningMessage { get; set; }
         }
 
         public static IReadOnlyList<ClashTestInfo> GetTests()
@@ -238,7 +239,8 @@ namespace SmartNavisTools
 
         public static ExportTestsResult ExportTests(
             IEnumerable<ClashTest> tests,
-            ExportFormat format)
+            ExportFormat format,
+            bool includeImages = true)
         {
             var selectedTests = tests?.Where(t => t != null).ToArray() ?? Array.Empty<ClashTest>();
             if (selectedTests.Length == 0)
@@ -251,13 +253,14 @@ namespace SmartNavisTools
             }
 
             ClashNativeReportBridge.NativeExportResult nativeResult =
-                ClashNativeReportBridge.ExportTests(selectedTests, format);
+                ClashNativeReportBridge.ExportTests(selectedTests, format, includeImages);
 
             return new ExportTestsResult
             {
                 Success = nativeResult.Success,
                 ExportedCount = nativeResult.InvokedCount,
-                ErrorMessage = nativeResult.ErrorMessage
+                ErrorMessage = nativeResult.ErrorMessage,
+                WarningMessage = nativeResult.WarningMessage
             };
         }
     }

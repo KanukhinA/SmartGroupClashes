@@ -8,7 +8,7 @@ namespace SmartNavisTools
     [Plugin("SmartNavisTools.ClashDetectiveTestsPane", "SmartNavisTools",
         DisplayName = "Проверки Clash Detective",
         ToolTip = "Список проверок Clash Detective и их обновление")]
-    [DockPanePlugin(500, 450, AutoScroll = true, MinimumHeight = 200, MinimumWidth = 280)]
+    [DockPanePlugin(500, 450, AutoScroll = false, MinimumHeight = 280, MinimumWidth = 280)]
     internal class ClashDetectiveTestsPane : DockPanePlugin
     {
         /// <inheritdoc />
@@ -17,8 +17,9 @@ namespace SmartNavisTools
             return new SmartNavisToolsPaneHost(() =>
                 new PluginPaneShell(
                     "Проверки Clash Detective",
-                    "Список проверок, обновление и экспорт стандартных отчётов.",
-                    new ClashDetectiveTestsView()));
+                    "Список проверок, выбор статусов и проекта SP-Service, обновление и экспорт отчётов.",
+                    new ClashDetectiveTestsView(),
+                    scrollContent: false));
         }
 
         /// <inheritdoc />

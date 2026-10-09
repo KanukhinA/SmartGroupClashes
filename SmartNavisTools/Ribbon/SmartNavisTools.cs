@@ -31,6 +31,11 @@ namespace SmartNavisTools
         LargeIcon = "ClashDashboardIcon_Large.ico",
         DisplayName = "Статистика пересечений",
         ToolTip = "Интерактивная статистика пересечений")]
+    [Command("ID_SmartNavisToolsSettingsButton",
+        Icon = "SmartNavisToolsIcon_Small.ico",
+        LargeIcon = "SmartNavisToolsIcon_Large.ico",
+        DisplayName = "Настройки",
+        ToolTip = "Адрес SP-Service, логин и пароль")]
     internal class RibbonHandler : CommandHandlerPlugin
     {
         private const string ClashStatusPanePluginId =
@@ -69,6 +74,10 @@ namespace SmartNavisTools
             {
                 ToggleDockPane(ClashDashboardPanePluginId);
             }
+            else if (commandId == "ID_SmartNavisToolsSettingsButton")
+            {
+                ShowServiceSettings();
+            }
 
             return 0;
         }
@@ -88,6 +97,26 @@ namespace SmartNavisTools
         public override bool CanExecuteRibbonTab(string name)
         {
             return true;
+        }
+
+        /// <summary>Открывает диалог адреса сервера, логина и пароля.</summary>
+        private static void ShowServiceSettings()
+        {
+            try
+            {
+                using (SpServiceSettingsForm form = new SpServiceSettingsForm())
+                {
+                    form.ShowDialog();
+                }
+            }
+            catch (Exception exception)
+            {
+                MessageBox.Show(
+                    "Ошибка открытия настроек.\r\n" + exception.Message,
+                    "SmartNavisTools",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
+            }
         }
 
         /// <summary>

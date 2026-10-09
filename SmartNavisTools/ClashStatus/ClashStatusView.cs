@@ -35,6 +35,9 @@ namespace SmartNavisTools
             var importButton = CreateStyledButton("Импорт отчёта (XML)");
             importButton.SetBinding(Button.CommandProperty, new Binding("ImportCommand"));
 
+            var loadFromServerButton = CreateStyledButton("Загрузить с сервера");
+            loadFromServerButton.SetBinding(Button.CommandProperty, new Binding("LoadFromServerCommand"));
+
             var updateButton = CreateStyledButton("Обновить статусы");
             updateButton.SetBinding(Button.CommandProperty, new Binding("UpdateCommand"));
 
@@ -45,6 +48,7 @@ namespace SmartNavisTools
                 Margin = new Thickness(0, 8, 0, 0)
             };
             buttonPanel.Children.Add(importButton);
+            buttonPanel.Children.Add(loadFromServerButton);
             buttonPanel.Children.Add(updateButton);
 
             var root = new DockPanel { Margin = new Thickness(10) };

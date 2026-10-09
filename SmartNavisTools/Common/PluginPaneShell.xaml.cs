@@ -25,10 +25,14 @@ namespace SmartNavisTools
         /// <summary>
         /// Создаёт WPF-оболочку и помещает внутрь WPF-контент.
         /// </summary>
-        public PluginPaneShell(string title, string description, UIElement content)
+        /// <param name="scrollContent">
+        /// true — прокручивать всю карточку;
+        /// false — растягивать контент по высоте панели, чтобы внутренние списки и кнопки оставались на месте.
+        /// </param>
+        public PluginPaneShell(string title, string description, UIElement content, bool scrollContent = true)
         {
             EnsureSmartPluginTheme();
-            (_titleTextBlock, _descriptionTextBlock, _contentHost) = BuildShell();
+            (_titleTextBlock, _descriptionTextBlock, _contentHost) = BuildShell(scrollContent);
             _titleTextBlock.Text = title ?? string.Empty;
             _descriptionTextBlock.Text = description ?? string.Empty;
             AttachContent(content);
@@ -40,7 +44,7 @@ namespace SmartNavisTools
         public PluginPaneShell(string title, string description, Forms.Control legacyControl)
         {
             EnsureSmartPluginTheme();
-            (_titleTextBlock, _descriptionTextBlock, _contentHost) = BuildShell();
+            (_titleTextBlock, _descriptionTextBlock, _contentHost) = BuildShell(scrollContent: true);
             _titleTextBlock.Text = title ?? string.Empty;
             _descriptionTextBlock.Text = description ?? string.Empty;
             AttachLegacyControl(legacyControl);
@@ -49,7 +53,7 @@ namespace SmartNavisTools
         /// <summary>
         /// Собирает WPF-оболочку программно, чтобы не зависеть от XAML-компиляции в старом проекте.
         /// </summary>
-        private (TextBlock title, TextBlock description, ContentPresenter host) BuildShell()
+        private (TextBlock title, TextBlock description, ContentPresenter host) BuildShell(bool scrollContent)
         {
             var primaryBrush = CreateBrush("#FF005E96");
             var accentBrush = CreateBrush("#FF0DA9CA");
@@ -94,7 +98,27 @@ namespace SmartNavisTools
                 }
             };
 
-            var host = new ContentPresenter();
+            var host = new ContentPresenter
+            {
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                VerticalAlignment = VerticalAlignment.Stretch
+            };
+
+            var contentFrame = new Border
+            {
+                Background = fieldBrush,
+                BorderBrush = borderBrush,
+                BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(8),
+                Padding = new Thickness(1),
+                Child = host
+            };
+
+            UIElement workCardChild = contentFrame;
+            if (scrollContent)
+            {
+                workCardChild = new StackPanel { Children = { contentFrame } };
+            }
 
             var workCard = new Border
             {
@@ -103,21 +127,7 @@ namespace SmartNavisTools
                 BorderThickness = new Thickness(1),
                 CornerRadius = new CornerRadius(10),
                 Padding = new Thickness(14, 12, 14, 12),
-                Child = new StackPanel
-                {
-                    Children =
-                    {
-                        new Border
-                        {
-                            Background = fieldBrush,
-                            BorderBrush = borderBrush,
-                            BorderThickness = new Thickness(1),
-                            CornerRadius = new CornerRadius(8),
-                            Padding = new Thickness(1),
-                            Child = host
-                        }
-                    }
-                }
+                Child = workCardChild
             };
 
             var footer = new Border
@@ -128,32 +138,29 @@ namespace SmartNavisTools
                 Padding = new Thickness(14, 6, 14, 6)
             };
 
-            Content = new Grid
+            UIElement contentArea;
+            if (scrollContent)
             {
-                Background = surfaceBrush,
-                Children =
-                {
-                    new Grid
-                    {
-                        RowDefinitions =
-                        {
-                            new RowDefinition { Height = GridLength.Auto },
-                            new RowDefinition { Height = new GridLength(1, GridUnitType.Star) },
-                            new RowDefinition { Height = GridLength.Auto }
-                        },
-                        Children =
-                        {
-                            header,
-                            CreateScrollViewer(workCard),
-                            footer
-                        }
-                    }
-                }
-            };
+                contentArea = CreateScrollViewer(workCard);
+            }
+            else
+            {
+                contentArea = workCard;
+            }
 
-            Grid.SetRow(((Grid)((Grid)Content).Children[0]).Children[1], 1);
-            Grid.SetRow(((Grid)((Grid)Content).Children[0]).Children[2], 2);
+            var layout = new Grid { Background = surfaceBrush };
+            layout.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            layout.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+            layout.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
 
+            Grid.SetRow(header, 0);
+            Grid.SetRow(contentArea, 1);
+            Grid.SetRow(footer, 2);
+            layout.Children.Add(header);
+            layout.Children.Add(contentArea);
+            layout.Children.Add(footer);
+
+            Content = layout;
             return (title, description, host);
         }
 

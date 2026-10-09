@@ -38,6 +38,13 @@
                                     Text="Статистика пересечений"
                                     Orientation="Vertical"/>
 
+                <local:NWRibbonButton x:Uid="Button_Settings" Id="ID_SmartNavisToolsSettingsButton"
+                                    Size="Large"
+                                    KeyTip="SS"
+                                    ShowText="True"
+                                    Text="Настройки"
+                                    Orientation="Vertical"/>
+
             </RibbonPanelSource>
         </RibbonPanel>
     </RibbonTab>
