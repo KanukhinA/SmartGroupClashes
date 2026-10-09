@@ -99,14 +99,20 @@
     <Compile Include="ClashService\SpServiceSettings.cs" />
     <Compile Include="ClashService\SpClashServiceClient.cs" />
     <Compile Include="ClashService\SpClashServiceSession.cs" />
-    <Compile Include="ClashService\SpServiceSettingsForm.cs" />
-    <Compile Include="ClashService\SpClashReportPickForm.cs" />
+    <Compile Include="ClashService\SpServiceSettingsForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="ClashService\SpClashReportPickForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
     <Compile Include="ClashService\SpClashSnapshotBuilder.cs" />
     <Compile Include="ClashService\SpClashNativeReportImageHarvester.cs" />
     <Compile Include="Common\PluginPaneShell.xaml.cs" />
     <Compile Include="Common\PropertyCatalog.cs" />
     <Compile Include="Common\PropertyCategoryAmbiguity.cs" />
-    <Compile Include="Common\SmartNavisToolsPaneHost.cs" />
+    <Compile Include="Common\SmartNavisToolsPaneHost.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
     <Compile Include="ClashStatus\ClashStatusPane.cs" />
     <Compile Include="ClashStatus\ClashStatusView.cs" />
     <Compile Include="ClashStatus\ClashStatusViewModel.cs" />
@@ -117,7 +123,9 @@
     <Compile Include="ClashDetectiveTests\ClashDetectiveTestsLogic.cs" />
     <Compile Include="ClashDetectiveTests\ClashNativeReportBridge.cs" />
     <Compile Include="ClashDashboard\ClashDashboardPane.cs" />
-    <Compile Include="ClashDashboard\ClashDashboardControl.cs" />
+    <Compile Include="ClashDashboard\ClashDashboardControl.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
     <Compile Include="ClashDashboard\ClashDashboardView.cs" />
     <Compile Include="ClashDashboard\ClashDashboardViewModel.cs" />
     <Compile Include="Common\ViewModelBase.cs" />
@@ -207,6 +215,9 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="PostBuild.ps1" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Reports\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
