@@ -278,6 +278,9 @@
     </Compile>
     <Compile Include="SmartGroupClashesPane.cs" />
     <Compile Include="GroupingFunctions.cs" />
+    <Compile Include="PipeExclusionRule.cs" />
+    <Compile Include="PipeNeighborhoodIndex.cs" />
+    <Compile Include="PipeClashExclusion.cs" />
     <Compile Include="GroupingModeOption.cs" />
     <Compile Include="Models\CustomClashTest.cs" />
     <Compile Include="ViewModels\ViewModelBase.cs" />

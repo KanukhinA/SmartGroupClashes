@@ -26,6 +26,7 @@ namespace SmartGroupClashes.ViewModels
         private GroupingModeOption _selectedThirdBy;
         private bool _keepExistingGroups;
         private bool _skipFixedGroups = true;
+        private bool _includeSinglePipeExclusion = true;
         private bool _analyzeNewStatus = true;
         private bool _analyzeActiveStatus = true;
         private bool _analyzeReviewedStatus = true;
@@ -65,6 +66,7 @@ namespace SmartGroupClashes.ViewModels
 
             GroupCommand = new RelayCommand(ExecuteGroup, () => CanGroup);
             UngroupCommand = new RelayCommand(ExecuteUngroup, () => CanUngroup);
+            ExcludePipeClashesCommand = new RelayCommand(ExecuteExcludePipeClashes, () => CanUngroup);
             SaveSettingsCommand = new RelayCommand(ExecuteSaveSettings);
             SelectAllTestsCommand = new RelayCommand(ExecuteSelectAll);
             ClearSelectionCommand = new RelayCommand(ExecuteClearSelection);
@@ -171,6 +173,16 @@ namespace SmartGroupClashes.ViewModels
                 {
                     OnSettingChanged();
                 }
+            }
+        }
+
+        /// <summary>Утверждать коллизию малой трубы ВИС, если в радиусе 200 мм нет других труб.</summary>
+        public bool IncludeSinglePipeExclusion
+        {
+            get { return _includeSinglePipeExclusion; }
+            set
+            {
+                if (SetProperty(ref _includeSinglePipeExclusion, value)) OnSettingChanged();
             }
         }
 
@@ -331,6 +343,7 @@ namespace SmartGroupClashes.ViewModels
                 if (SetProperty(ref _canUngroup, value))
                 {
                     UngroupCommand?.RaiseCanExecuteChanged();
+                    ExcludePipeClashesCommand?.RaiseCanExecuteChanged();
                 }
             }
         }
@@ -375,6 +388,9 @@ namespace SmartGroupClashes.ViewModels
 
         /// <summary>Команда снятия группировки.</summary>
         public RelayCommand UngroupCommand { get; }
+
+        /// <summary>Утверждает коллизии труб ВИС по диаметру и расстоянию между центрами габаритов.</summary>
+        public RelayCommand ExcludePipeClashesCommand { get; }
 
         /// <summary>Команда сохранения настроек.</summary>
         public RelayCommand SaveSettingsCommand { get; }
@@ -816,6 +832,42 @@ namespace SmartGroupClashes.ViewModels
             }
         }
 
+        private void ExecuteExcludePipeClashes()
+        {
+            var selectedTests = ClashTests.Where(t => t.IsSelected).Select(t => t.ClashTest).ToList();
+            if (selectedTests.Count == 0) return;
+            var selectedGuids = new HashSet<Guid>(selectedTests.Select(t => t.Guid));
+
+            UnRegisterChanges();
+            try
+            {
+                PipeClashExclusion.Summary summary = PipeClashExclusion.Apply(
+                    NavisworksApplication.MainDocument, selectedTests, IncludeSinglePipeExclusion);
+                MessageBox.Show(
+                    $"Проверено коллизий: {summary.Examined}\n"
+                    + $"Переведено в «Утверждено»: {summary.Approved}\n"
+                    + $"Уже утверждены или устранены: {summary.AlreadyClosed}\n"
+                    + $"Пропущено из-за неполных данных: {summary.MissingData}\n"
+                    + $"Не соответствуют правилу: {summary.OutsideRule}\n\n"
+                    + summary.DescribeSkips() + "\n\n"
+                    + (IncludeSinglePipeExclusion
+                        ? "Труба ВИС меньше 50 мм: в радиусе 200 мм нет других труб любого диаметра. Проверены центры габаритов труб всей модели."
+                        : "Расстояние рассчитано между центрами габаритов труб, а не между осями."),
+                    "Исключение труб ВИС", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Не удалось применить правило исключения:\n" + ex,
+                    "SmartGroupClashes", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            finally
+            {
+                RegisterChanges();
+                foreach (var item in ClashTests) item.IsSelected = selectedGuids.Contains(item.ClashTest.Guid);
+                CheckPlugin();
+            }
+        }
+
         /// <summary>Сохраняет настройки принудительно.</summary>
         private void ExecuteSaveSettings()
         {
@@ -908,6 +960,7 @@ namespace SmartGroupClashes.ViewModels
             {
                 KeepExistingGroups = ParseBool(map, "KeepExistingGroups", false);
                 SkipFixedGroups = ParseBool(map, "SkipFixedGroups", true);
+                IncludeSinglePipeExclusion = ParseBool(map, "IncludeSinglePipeExclusion", true);
                 AnalyzeNewStatus = ParseBool(map, "AnalyzeStatusNew", true);
                 AnalyzeActiveStatus = ParseBool(map, "AnalyzeStatusActive", true);
                 AnalyzeReviewedStatus = ParseBool(map, "AnalyzeStatusReviewed", true);
@@ -975,6 +1028,7 @@ namespace SmartGroupClashes.ViewModels
                 {
                     "KeepExistingGroups=" + (_keepExistingGroups ? "true" : "false"),
                     "SkipFixedGroups=" + (_skipFixedGroups ? "true" : "false"),
+                    "IncludeSinglePipeExclusion=" + (_includeSinglePipeExclusion ? "true" : "false"),
                     "AnalyzeStatusNew=" + (_analyzeNewStatus ? "true" : "false"),
                     "AnalyzeStatusActive=" + (_analyzeActiveStatus ? "true" : "false"),
                     "AnalyzeStatusReviewed=" + (_analyzeReviewedStatus ? "true" : "false"),
