@@ -275,6 +275,29 @@
                         </StackPanel>
                     </StackPanel>
                 </Border>
+                <Border Style="{StaticResource PluginCardStyle}">
+                    <StackPanel>
+                        <TextBlock Style="{StaticResource PluginSectionTitleStyle}"
+                                   Text="Исключение труб ВИС" />
+                        <CheckBox IsChecked="{Binding IncludeSinglePipeExclusion}" Margin="0,0,0,6">
+                            <TextBlock Text="Также утверждать: одиночная труба ВИС диаметром меньше 50 мм и любой второй элемент, если в радиусе 200 мм нет других труб."
+                                       TextWrapping="Wrap" />
+                        </CheckBox>
+                        <TextBlock Text="Соседями считаются трубы любого диаметра и раздела из всей открытой модели. Расстояние между центрами габаритов 200 мм или меньше блокирует правило одиночной трубы; сама труба не учитывается."
+                                   TextWrapping="Wrap" Margin="0,0,0,6" />
+                        <TextBlock Text="Правило пары труб (если опция выше выключена): обе трубы ВИС, категория «Трубы» во вкладке «Объект», диаметр строго меньше 50 мм."
+                                   TextWrapping="Wrap" Margin="0,0,0,6" />
+                        <TextBlock Text="Труба ВИС: во вкладке «Элемент» трубы или её родителей значение содержит VK, EOM, SS, OV, ВК, ЕОМ, СС или ОМ. Регистр не учитывается."
+                                   TextWrapping="Wrap" Margin="0,0,0,6" />
+                        <TextBlock Text="Для пары труб: расстояние между центрами габаритов — строго меньше 200 мм. Это приближение, которое не равно расстоянию между осями."
+                                   TextWrapping="Wrap" Margin="0,0,0,6" />
+                        <TextBlock Text="Команда меняет только статус на «Утверждено» в выбранных тестах, включая коллизии внутри групп. Утверждённые, устранённые и коллизии с неполными данными пропускаются. Фильтр статусов группировки здесь не применяется."
+                                   TextWrapping="Wrap" Margin="0,0,0,8" />
+                        <Button Content="Утвердить по правилу"
+                                HorizontalAlignment="Left"
+                                Command="{Binding ExcludePipeClashesCommand}" />
+                    </StackPanel>
+                </Border>
             </StackPanel>
         </ScrollViewer>
 
