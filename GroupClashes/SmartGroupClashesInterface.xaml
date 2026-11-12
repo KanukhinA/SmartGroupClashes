@@ -99,26 +99,115 @@
                                 BorderBrush="{StaticResource PluginBrush.Border}"
                                 BorderThickness="1"
                                 CornerRadius="8">
-                            <ListBox x:Name="ClashTestListBox"
-                                     Background="Transparent"
-                                     BorderThickness="0"
-                                     ItemsSource="{Binding ClashTests}"
-                                     SelectionMode="Extended">
-                                <ListBox.ItemContainerStyle>
-                                    <Style TargetType="ListBoxItem">
-                                        <Setter Property="IsSelected" Value="{Binding IsSelected, Mode=TwoWay}" />
+                            <TreeView x:Name="ClashTestTreeView"
+                                      Background="Transparent" BorderThickness="0"
+                                      MinHeight="160" MaxHeight="300"
+                                      ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                      ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                      VirtualizingStackPanel.IsVirtualizing="True"
+                                      VirtualizingStackPanel.VirtualizationMode="Recycling"
+                                      ItemsSource="{Binding ClashTestTree}">
+                                <TreeView.Resources>
+                                    <Style TargetType="{x:Type TreeViewItem}">
+                                        <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}" />
+                                        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                        <Setter Property="Template">
+                                            <Setter.Value>
+                                                <ControlTemplate TargetType="TreeViewItem">
+                                                    <Grid>
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="18" />
+                                                            <ColumnDefinition Width="*" />
+                                                        </Grid.ColumnDefinitions>
+                                                        <Grid.RowDefinitions>
+                                                            <RowDefinition Height="Auto" />
+                                                            <RowDefinition Height="Auto" />
+                                                        </Grid.RowDefinitions>
+                                                        <ToggleButton x:Name="Expander" Width="16" Height="22"
+                                                                      Focusable="False" VerticalAlignment="Top"
+                                                                      IsChecked="{Binding IsExpanded, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}">
+                                                            <ToggleButton.Template>
+                                                                <ControlTemplate TargetType="ToggleButton">
+                                                                    <Border Background="Transparent">
+                                                                        <Path x:Name="Arrow" Data="M 0,0 L 4,4 L 0,8 Z"
+                                                                              Fill="#687482" Width="8" Height="8" Stretch="Uniform"
+                                                                              HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                                                    </Border>
+                                                                    <ControlTemplate.Triggers>
+                                                                        <Trigger Property="IsChecked" Value="True">
+                                                                            <Setter TargetName="Arrow" Property="Data" Value="M 0,0 L 8,0 L 4,4 Z" />
+                                                                        </Trigger>
+                                                                    </ControlTemplate.Triggers>
+                                                                </ControlTemplate>
+                                                            </ToggleButton.Template>
+                                                        </ToggleButton>
+                                                        <Border x:Name="HeaderBorder" Grid.Column="1" Background="Transparent" CornerRadius="3">
+                                                            <ContentPresenter x:Name="PART_Header" ContentSource="Header"
+                                                                              HorizontalAlignment="Stretch" />
+                                                        </Border>
+                                                        <ItemsPresenter x:Name="ItemsHost" Grid.Column="1" Grid.Row="1" />
+                                                    </Grid>
+                                                    <ControlTemplate.Triggers>
+                                                        <Trigger Property="IsExpanded" Value="False">
+                                                            <Setter TargetName="ItemsHost" Property="Visibility" Value="Collapsed" />
+                                                        </Trigger>
+                                                        <Trigger Property="HasItems" Value="False">
+                                                            <Setter TargetName="Expander" Property="Visibility" Value="Hidden" />
+                                                        </Trigger>
+                                                        <Trigger Property="IsSelected" Value="True">
+                                                            <Setter TargetName="HeaderBorder" Property="Background" Value="#E6F2F8" />
+                                                        </Trigger>
+                                                    </ControlTemplate.Triggers>
+                                                </ControlTemplate>
+                                            </Setter.Value>
+                                        </Setter>
                                     </Style>
-                                </ListBox.ItemContainerStyle>
-                                <ListBox.ItemTemplate>
-                                    <DataTemplate>
-                                        <TextBlock Text="{Binding DisplayName}"
-                                                   Margin="6,3"
-                                                   TextWrapping="Wrap" />
-                                    </DataTemplate>
-                                </ListBox.ItemTemplate>
-                            </ListBox>
+                                </TreeView.Resources>
+                                <TreeView.ItemTemplate>
+                                    <HierarchicalDataTemplate ItemsSource="{Binding Children}">
+                                        <CheckBox IsChecked="{Binding IsChecked, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                  IsThreeState="False" Margin="2,3"
+                                                  ToolTip="Выбрать проверку или все видимые проверки ветки">
+                                            <TextBlock Text="{Binding DisplayName}" TextWrapping="Wrap">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsGroup}" Value="True">
+                                                                <Setter Property="FontWeight" Value="SemiBold" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+                                        </CheckBox>
+                                    </HierarchicalDataTemplate>
+                                </TreeView.ItemTemplate>
+                            </TreeView>
                         </Border>
                         <StackPanel Orientation="Vertical" Grid.Row="2" Margin="0,10,0,0">
+                            <WrapPanel Margin="0,0,0,6">
+                                <Button Content="Развернуть всё" Command="{Binding ExpandTreeCommand}" Padding="8,2" />
+                                <Button Content="Свернуть всё" Command="{Binding CollapseTreeCommand}" Padding="8,2" />
+                                <Button Content="Обновить список" Command="{Binding RefreshTestsCommand}" Padding="8,2" />
+                            </WrapPanel>
+                            <TextBlock Text="{Binding TestsLoadStatus}" TextWrapping="Wrap" Margin="0,0,0,4" />
+                            <TextBlock Text="{Binding TestsLoadError}" Foreground="#B42318"
+                                       TextWrapping="Wrap" Margin="0,0,0,4" />
+                            <TextBlock Text="Группы по началу имени: ВИС_ВИС, ВИС_АР, ВИС_КР, АР_АР. Нераспознанные названия — в «Нераспределенных». Флажок ветки выбирает все её проверки, соответствующие поиску."
+                                       TextWrapping="Wrap" Margin="0,0,0,6" />
+                            <TextBlock Text="Проверки не найдены. Очистите поиск или нажмите «Обновить список»."
+                                       TextWrapping="Wrap" Foreground="Gray" Margin="0,0,0,4">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding ClashTestTree.Count}" Value="0">
+                                                <Setter Property="Visibility" Value="Visible" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
                             <Label Content="{Binding SelectedTestsCountText}" Padding="0" Height="20" VerticalAlignment="Center" HorizontalAlignment="Left" />
                             <Label Content="{Binding SelectedTestDisplayName}"
                                    ContentStringFormat="Тест коллизий: {0}"
@@ -279,17 +368,30 @@
                     <StackPanel>
                         <TextBlock Style="{StaticResource PluginSectionTitleStyle}"
                                    Text="Исключение труб ВИС" />
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                            <Label Content="Допустимое расстояние, мм:" Target="{Binding ElementName=ExclusionDistanceInput}"
+                                   VerticalAlignment="Center" Padding="0,0,8,0" />
+                            <TextBox x:Name="ExclusionDistanceInput" Width="96"
+                                     Text="{Binding ExclusionDistanceMmText, UpdateSourceTrigger=PropertyChanged}"
+                                     ToolTip="Положительное число в миллиметрах. Можно использовать запятую или точку." />
+                        </StackPanel>
+                        <TextBlock Text="{Binding ExclusionDistanceError}" Foreground="#B42318"
+                                   TextWrapping="Wrap" />
+                        <TextBlock Text="Измеряется между центрами габаритов, как приближение расстояния между осями. Порог задаёт расстояние для пары труб и радиус поиска соседей. Для сохранения нажмите «Сохранить настройки»."
+                                   TextWrapping="Wrap" Margin="0,0,0,6" />
                         <CheckBox IsChecked="{Binding IncludeSinglePipeExclusion}" Margin="0,0,0,6">
-                            <TextBlock Text="Также утверждать: одиночная труба ВИС диаметром меньше 50 мм и любой второй элемент, если в радиусе 200 мм нет других труб."
+                            <TextBlock Text="Также утверждать: одиночная труба ВИС диаметром меньше 50 мм и второй элемент из модели ВИС, если в заданном радиусе нет других труб."
                                        TextWrapping="Wrap" />
                         </CheckBox>
-                        <TextBlock Text="Соседями считаются трубы любого диаметра и раздела из всей открытой модели. Расстояние между центрами габаритов 200 мм или меньше блокирует правило одиночной трубы; сама труба не учитывается."
+                        <TextBlock Text="Имя файла модели второго участника должно содержать VK, EOM, SS, OV, ВК, ЕОМ, СС или ОМ без учёта регистра. Код в имени папки или самого элемента не учитывается."
+                                   TextWrapping="Wrap" Margin="0,0,0,6" />
+                        <TextBlock Text="Соседями считаются трубы любого диаметра и раздела из всей открытой модели. Расстояние до соседа, равное указанному порогу или меньше, блокирует правило одиночной трубы; сама труба не учитывается."
                                    TextWrapping="Wrap" Margin="0,0,0,6" />
                         <TextBlock Text="Правило пары труб (если опция выше выключена): обе трубы ВИС, категория «Трубы» во вкладке «Объект», диаметр строго меньше 50 мм."
                                    TextWrapping="Wrap" Margin="0,0,0,6" />
                         <TextBlock Text="Труба ВИС: во вкладке «Элемент» трубы или её родителей значение содержит VK, EOM, SS, OV, ВК, ЕОМ, СС или ОМ. Регистр не учитывается."
                                    TextWrapping="Wrap" Margin="0,0,0,6" />
-                        <TextBlock Text="Для пары труб: расстояние между центрами габаритов — строго меньше 200 мм. Это приближение, которое не равно расстоянию между осями."
+                        <TextBlock Text="Для пары труб: расстояние между центрами габаритов должно быть строго меньше указанного порога."
                                    TextWrapping="Wrap" Margin="0,0,0,6" />
                         <TextBlock Text="Команда меняет только статус на «Утверждено» в выбранных тестах, включая коллизии внутри групп. Утверждённые, устранённые и коллизии с неполными данными пропускаются. Фильтр статусов группировки здесь не применяется."
                                    TextWrapping="Wrap" Margin="0,0,0,8" />

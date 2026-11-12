@@ -41,14 +41,18 @@ namespace SmartGroupClashes
             internal string SkipReason;
         }
 
-        internal static Summary Apply(Document document, IEnumerable<ClashTest> tests, bool includeSinglePipe)
+        internal static Summary Apply(Document document, IEnumerable<ClashTest> tests, bool includeSinglePipe,
+            double distanceMm)
         {
+            if (!PipeExclusionRule.IsValidDistanceMm(distanceMm))
+                throw new ArgumentOutOfRangeException(nameof(distanceMm), "Укажите положительное расстояние в миллиметрах.");
             double scaleToMm = UnitConversion.ScaleFactor(document.Units, Units.Millimeters);
             if (!PipeExclusionRule.IsPositiveFinite(scaleToMm))
                 throw new InvalidOperationException("Не удалось определить единицы документа.");
 
             var summary = new Summary();
             var cache = new Dictionary<ModelItem, PipeReadResult>();
+            var modelNames = new Dictionary<ModelItem, string>();
             PipeNeighborhoodIndex<ModelItem> neighborhood = null;
             var matches = new List<ClashResult>();
             var seen = new HashSet<Guid>();
@@ -78,36 +82,53 @@ namespace SmartGroupClashes
                     || PipeExclusionRule.IsSmallPipe(b.Candidate);
                 bool aIsIsolated = false;
                 bool bIsIsolated = false;
+                string modelNameA = null;
+                string modelNameB = null;
                 if (includeSinglePipe && hasSmallPipe)
                 {
+                    modelNameA = ReadSourceModelName(result.Item1, modelNames);
+                    modelNameB = ReadSourceModelName(result.Item2, modelNames);
+                    bool aHasVisPartner = PipeExclusionRule.IsSmallPipe(a.Candidate)
+                        && PipeExclusionRule.IsVisModelName(modelNameB);
+                    bool bHasVisPartner = PipeExclusionRule.IsSmallPipe(b.Candidate)
+                        && PipeExclusionRule.IsVisModelName(modelNameA);
+                    if (!aHasVisPartner && !bHasVisPartner)
+                    {
+                        bool missingModel = (PipeExclusionRule.IsSmallPipe(a.Candidate) && string.IsNullOrWhiteSpace(modelNameB))
+                            || (PipeExclusionRule.IsSmallPipe(b.Candidate) && string.IsNullOrWhiteSpace(modelNameA));
+                        summary.Skip(missingModel ? "Не определено имя модели второго участника"
+                            : "В имени модели второго участника не найден код ВИС", missingModel);
+                        continue;
+                    }
                     // Индекс строится один раз по всей модели, без фильтра по диаметру и разделу ВИС.
-                    if (neighborhood == null) neighborhood = BuildNeighborhood(document, scaleToMm);
+                    if (neighborhood == null) neighborhood = BuildNeighborhood(document, scaleToMm, distanceMm);
                     if (!neighborhood.IsComplete)
                     {
                         summary.Skip("Не удалось определить положение всех труб модели", true);
                         continue;
                     }
-                    if ((PipeExclusionRule.IsSmallPipe(a.Candidate) && !neighborhood.Contains(a.Item))
-                        || (PipeExclusionRule.IsSmallPipe(b.Candidate) && !neighborhood.Contains(b.Item)))
+                    if ((aHasVisPartner && !neighborhood.Contains(a.Item))
+                        || (bHasVisPartner && !neighborhood.Contains(b.Item)))
                     {
                         summary.Skip("Труба не найдена в общем поиске труб модели", true);
                         continue;
                     }
-                    aIsIsolated = PipeExclusionRule.IsSmallPipe(a.Candidate)
+                    aIsIsolated = aHasVisPartner
                         && neighborhood.IsIsolated(a.Item, a.Candidate);
-                    bIsIsolated = PipeExclusionRule.IsSmallPipe(b.Candidate)
+                    bIsIsolated = bHasVisPartner
                         && neighborhood.IsIsolated(b.Item, b.Candidate);
                 }
 
-                // Неполные свойства второй стороны не мешают правилу: она может быть любым элементом.
-                if (PipeExclusionRule.Matches(a.Candidate, b.Candidate, includeSinglePipe, aIsIsolated, bIsIsolated))
+                // Категория второго элемента произвольна, но его исходная модель обязана быть моделью ВИС.
+                if (PipeExclusionRule.Matches(a.Candidate, b.Candidate, includeSinglePipe, aIsIsolated, bIsIsolated,
+                    modelNameA, modelNameB, distanceMm))
                 {
                     matches.Add(result);
                     continue;
                 }
                 if (includeSinglePipe && hasSmallPipe)
                 {
-                    summary.Skip("Рядом с трубой есть другая труба (радиус 200 мм)");
+                    summary.Skip($"Рядом с трубой есть другая труба (радиус {distanceMm:G} мм)");
                     continue;
                 }
                 if (a.MissingData || b.MissingData)
@@ -121,7 +142,7 @@ namespace SmartGroupClashes
                     || b.Candidate.DiameterMm >= PipeExclusionRule.DiameterLimitMm)
                     summary.Skip(includeSinglePipe ? "Нет трубы ВИС диаметром меньше 50 мм"
                         : "Диаметр хотя бы одной трубы не меньше 50 мм");
-                else summary.Skip("Расстояние между центрами не меньше 200 мм");
+                else summary.Skip($"Расстояние между центрами не меньше {distanceMm:G} мм");
             }
 
             if (matches.Count == 0) return summary;
@@ -207,9 +228,10 @@ namespace SmartGroupClashes
             return Missing("Не найдено свойство «Объект → Категория»");
         }
 
-        private static PipeNeighborhoodIndex<ModelItem> BuildNeighborhood(Document document, double scaleToMm)
+        private static PipeNeighborhoodIndex<ModelItem> BuildNeighborhood(Document document, double scaleToMm,
+            double distanceMm)
         {
-            var index = new PipeNeighborhoodIndex<ModelItem>();
+            var index = new PipeNeighborhoodIndex<ModelItem>(distanceMm);
             var search = new Search();
             search.Selection.SelectAll();
             search.Locations = SearchLocations.DescendantsAndSelf;
@@ -264,6 +286,35 @@ namespace SmartGroupClashes
                     if (IsName(property.DisplayName, names)) return property;
             }
             return null;
+        }
+
+        private static string ReadSourceModelName(ModelItem source, Dictionary<ModelItem, string> cache)
+        {
+            string name;
+            if (cache.TryGetValue(source, out name)) return name;
+            name = string.Empty;
+            try
+            {
+                // Ссылка коллизии может вести на вложенную геометрию: ищем ближайший узел файла.
+                // Имя NWD/NWF всего документа и свойства произвольных элементов не используются.
+                for (ModelItem item = source; item != null; item = item.Parent)
+                {
+                    Model model = item.Model;
+                    if (model == null) continue;
+                    name = model.SourceFileName;
+                    if (string.IsNullOrWhiteSpace(name)) name = model.FileName;
+                    if (string.IsNullOrWhiteSpace(name)) name = model.RootItem?.DisplayName;
+                    break;
+                }
+            }
+            catch (Exception ex) when (ex is InvalidOperationException || ex is ArgumentException
+                || ex is NotSupportedException || ex is System.Runtime.InteropServices.COMException)
+            {
+                // Неопределённая модель не даёт права автоматически утверждать коллизию.
+                name = string.Empty;
+            }
+            cache[source] = name ?? string.Empty;
+            return cache[source];
         }
 
         private static bool HasVisCode(ModelItem pipe)

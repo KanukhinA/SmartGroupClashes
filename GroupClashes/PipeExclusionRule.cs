@@ -8,7 +8,7 @@ namespace SmartGroupClashes
     internal static class PipeExclusionRule
     {
         internal const double DiameterLimitMm = 50;
-        internal const double CenterDistanceLimitMm = 200;
+        internal const double DefaultDistanceMm = 200;
 
         private static readonly string[] VisCodes =
         {
@@ -34,6 +34,14 @@ namespace SmartGroupClashes
                 if (value.IndexOf(code, StringComparison.OrdinalIgnoreCase) >= 0) return true;
             }
             return false;
+        }
+
+        internal static bool IsVisModelName(string modelName)
+        {
+            // Код в имени папки не определяет раздел самой модели.
+            string name = (modelName ?? string.Empty).Trim();
+            int separator = name.LastIndexOfAny(new[] { '\\', '/' });
+            return ContainsVisCode(name.Substring(separator + 1));
         }
 
         /// <summary>Без единицы измерения строка считается неоднозначной и не используется.</summary>
@@ -70,13 +78,27 @@ namespace SmartGroupClashes
             return pipe != null && IsFinite(pipe.X) && IsFinite(pipe.Y) && IsFinite(pipe.Z);
         }
 
-        internal static bool Matches(PipeExclusionCandidate a, PipeExclusionCandidate b,
-            bool includeSinglePipe = false, bool aIsIsolated = false, bool bIsIsolated = false)
+        internal static bool IsValidDistanceMm(double value)
         {
+            // Проверяется и квадрат: слишком большие/малые значения не должны искажать сравнение расстояний.
+            return IsPositiveFinite(value) && IsPositiveFinite(value * value);
+        }
+
+        internal static bool TryParseDistanceMm(string text, out double distanceMm)
+        {
+            return double.TryParse((text ?? string.Empty).Trim().Replace(',', '.'),
+                NumberStyles.Float, CultureInfo.InvariantCulture, out distanceMm) && IsValidDistanceMm(distanceMm);
+        }
+
+        internal static bool Matches(PipeExclusionCandidate a, PipeExclusionCandidate b,
+            bool includeSinglePipe = false, bool aIsIsolated = false, bool bIsIsolated = false,
+            string modelNameA = null, string modelNameB = null, double distanceLimitMm = DefaultDistanceMm)
+        {
+            if (!IsValidDistanceMm(distanceLimitMm)) return false;
             // В режиме одиночной трубы соседство блокирует утверждение, без перехода к правилу пары.
             if (includeSinglePipe)
-                return (IsSmallPipe(a) && HasValidCenter(a) && aIsIsolated)
-                    || (IsSmallPipe(b) && HasValidCenter(b) && bIsIsolated);
+                return (IsSmallPipe(a) && HasValidCenter(a) && aIsIsolated && IsVisModelName(modelNameB))
+                    || (IsSmallPipe(b) && HasValidCenter(b) && bIsIsolated && IsVisModelName(modelNameA));
             if (a == null || b == null
                 || !IsPositiveFinite(a.DiameterMm) || !IsPositiveFinite(b.DiameterMm)
                 || a.DiameterMm >= DiameterLimitMm || b.DiameterMm >= DiameterLimitMm
@@ -86,7 +108,7 @@ namespace SmartGroupClashes
             double dx = a.X - b.X;
             double dy = a.Y - b.Y;
             double dz = a.Z - b.Z;
-            return dx * dx + dy * dy + dz * dz < CenterDistanceLimitMm * CenterDistanceLimitMm;
+            return dx * dx + dy * dy + dz * dz < distanceLimitMm * distanceLimitMm;
         }
 
         internal static bool IsPositiveFinite(double value)
