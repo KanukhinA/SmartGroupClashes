@@ -18,6 +18,41 @@ namespace SmartGroupClashes
             return new PipeExclusionCandidate { DiameterMm = diameter, X = x, Y = y, Z = z };
         }
 
+        private static bool SingleMatches(PipeExclusionCandidate a, PipeExclusionCandidate b,
+            bool aIsIsolated = false, bool bIsIsolated = false,
+            string modelNameA = "SP_VK.nwc", string modelNameB = "SP_OV.nwc")
+        {
+            return PipeExclusionRule.Matches(a, b, true, aIsIsolated, bIsIsolated, modelNameA, modelNameB);
+        }
+
+        private static void ModelNameTests()
+        {
+            foreach (string code in new[] { "VK", "EOM", "SS", "OV", "ВК", "ЕОМ", "СС", "ОМ" })
+            {
+                Check(PipeExclusionRule.IsVisModelName("SP1_" + code.ToLowerInvariant() + "_RD_R23.nwc"),
+                    "VIS code in model filename: " + code);
+                Check(SingleMatches(Pipe(20), null, true, false, "SP_VK.nwc", "SP1_" + code + ".nwc"),
+                    "VIS partner model: " + code);
+            }
+            Check(PipeExclusionRule.IsVisModelName(@"C:\Models\SP1_OV_RD_R23.nwc"), "Windows path basename");
+            Check(PipeExclusionRule.IsVisModelName("/models/SP1_ВК.rvt"), "Forward slash basename");
+            Check(!PipeExclusionRule.IsVisModelName(@"C:\VK\SP1_KR.nwc"), "Folder code does not qualify model");
+            Check(!PipeExclusionRule.IsVisModelName("/OV/SP1_AR.nwc"), "Forward slash folder code ignored");
+            Check(!PipeExclusionRule.IsVisModelName(null), "Missing model name");
+            Check(!PipeExclusionRule.IsVisModelName("  "), "Empty model name");
+            Check(!PipeExclusionRule.IsVisModelName("SP1_KR_RD_R23.nwc"), "Structural model");
+            Check(!SingleMatches(Pipe(20), null, true, false, "SP_VK.nwc", "SP_KR.nwc"),
+                "Own pipe model is VIS but opposite model is structural");
+            Check(!SingleMatches(null, Pipe(20), false, true, "SP_KR.nwc", "SP_VK.nwc"),
+                "Reverse sides: partner must be VIS");
+            Check(!SingleMatches(Pipe(20), null, true, false, "SP_VK.nwc", null), "Unknown partner model");
+            Check(!SingleMatches(Pipe(20), null, true, false, "SP_VK.nwc", @"C:\SS\SP_KR.nwc"),
+                "Partner model code only in directory");
+            Check(!PipeExclusionRule.Matches(Pipe(20), null, true, true), "No model qualification by default");
+            Check(PipeExclusionRule.Matches(Pipe(20), Pipe(20, 100), false, false, false, "SP_KR.nwc", "SP_AR.nwc"),
+                "Model restriction applies only to single-pipe option");
+        }
+
         private static void Diameter(string text, double expected)
         {
             double actual;
@@ -31,14 +66,58 @@ namespace SmartGroupClashes
             Check(!PipeExclusionRule.TryParseDiameterMm(text, out ignored), "Reject diameter: " + text);
         }
 
-        private static void Neighbor(double x, double y, double z, bool isolated, string description)
+        private static void Neighbor(double x, double y, double z, bool isolated, string description,
+            double radiusMm = PipeExclusionRule.DefaultDistanceMm)
         {
-            var index = new PipeNeighborhoodIndex<string>();
+            var index = new PipeNeighborhoodIndex<string>(radiusMm);
             var source = Pipe(20);
             index.Add("source", source);
             // Сосед любого диаметра, не обязательно участник выбранной проверки или труба ВИС.
             index.Add("pipe_outside_selected_tests", Pipe(500, x, y, z));
             Check(index.IsIsolated("source", source) == isolated, description);
+        }
+
+        private static void DistanceSettingsTests()
+        {
+            foreach (string culture in new[] { "ru-RU", "en-US" })
+            {
+                CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo(culture);
+                foreach (string text in new[] { "150,5", "150.5", " 150.5 " })
+                {
+                    double actual;
+                    Check(PipeExclusionRule.TryParseDistanceMm(text, out actual) && actual == 150.5,
+                        "Distance input independent of culture: " + text);
+                    string saved = actual.ToString("R", CultureInfo.InvariantCulture);
+                    Check(PipeExclusionRule.TryParseDistanceMm(saved, out actual) && actual == 150.5,
+                        "Settings value round-trip: " + culture);
+                }
+                foreach (string invalid in new[] { null, "", "  ", "0", "-1", "abc", "200 мм", "1,2.3", "NaN",
+                    "Infinity", "1e999", "1e200", "1e-200" })
+                {
+                    double ignored;
+                    Check(!PipeExclusionRule.TryParseDistanceMm(invalid, out ignored), "Invalid distance: " + invalid);
+                }
+            }
+            Check(PipeExclusionRule.Matches(Pipe(20), Pipe(20, 99.999), distanceLimitMm: 100), "Pair below custom threshold");
+            Check(!PipeExclusionRule.Matches(Pipe(20), Pipe(20, 100), distanceLimitMm: 100), "Pair at custom threshold");
+            Check(!PipeExclusionRule.Matches(Pipe(20), Pipe(20, 150), distanceLimitMm: 100), "Reduced pair threshold applied");
+            Check(PipeExclusionRule.Matches(Pipe(20), Pipe(20, 300), distanceLimitMm: 350), "Increased pair threshold applied");
+            Check(!PipeExclusionRule.Matches(Pipe(20), Pipe(20, 350), distanceLimitMm: 350), "Increased pair boundary");
+            Check(PipeExclusionRule.Matches(Pipe(20), Pipe(20, 150), distanceLimitMm: 150.5), "Fractional pair threshold");
+            foreach (double invalid in new[] { 0d, -1d, double.NaN, double.PositiveInfinity, double.MaxValue, double.Epsilon })
+            {
+                Check(!PipeExclusionRule.Matches(Pipe(20), Pipe(20, 10), distanceLimitMm: invalid), "Invalid pair threshold");
+                bool rejected = false;
+                try { new PipeNeighborhoodIndex<string>(invalid); }
+                catch (ArgumentOutOfRangeException) { rejected = true; }
+                Check(rejected, "Index must reject invalid radius");
+            }
+            Neighbor(100, 0, 0, false, "Custom neighbor boundary", 100);
+            Neighbor(100.001, 0, 0, true, "Outside reduced radius", 100);
+            Neighbor(300, 0, 0, false, "Neighbor found beyond old radius", 350);
+            Neighbor(350, 0, 0, false, "Increased neighbor boundary", 350);
+            Neighbor(350.001, 0, 0, true, "Outside increased radius", 350);
+            Neighbor(-150.5, 0, 0, false, "Fractional radius and negative cells", 150.5);
         }
 
         private static void NeighborhoodTests()
@@ -76,26 +155,30 @@ namespace SmartGroupClashes
             var random = new Random(7413);
             var points = new PipeExclusionCandidate[300];
             var ids = new string[points.Length];
-            var spatial = new PipeNeighborhoodIndex<string>();
             for (int i = 0; i < points.Length; i++)
             {
                 ids[i] = "pipe_" + i;
                 points[i] = Pipe(random.Next(1, 600), random.NextDouble() * 2000 - 1000,
                     random.NextDouble() * 2000 - 1000, random.NextDouble() * 2000 - 1000);
-                spatial.Add(ids[i], points[i]);
             }
-            for (int i = 0; i < points.Length; i++)
+            foreach (double radiusMm in new[] { 100d, 200d, 350.5 })
             {
-                bool expected = true;
-                for (int j = 0; j < points.Length; j++)
+                var spatial = new PipeNeighborhoodIndex<string>(radiusMm);
+                for (int i = 0; i < points.Length; i++) spatial.Add(ids[i], points[i]);
+                for (int i = 0; i < points.Length; i++)
                 {
-                    if (i == j) continue;
-                    double dx = points[i].X - points[j].X;
-                    double dy = points[i].Y - points[j].Y;
-                    double dz = points[i].Z - points[j].Z;
-                    if (dx * dx + dy * dy + dz * dz <= 40000) { expected = false; break; }
+                    bool expected = true;
+                    for (int j = 0; j < points.Length; j++)
+                    {
+                        if (i == j) continue;
+                        double dx = points[i].X - points[j].X;
+                        double dy = points[i].Y - points[j].Y;
+                        double dz = points[i].Z - points[j].Z;
+                        if (dx * dx + dy * dy + dz * dz <= radiusMm * radiusMm) { expected = false; break; }
+                    }
+                    Check(spatial.IsIsolated(ids[i], points[i]) == expected,
+                        "Spatial index versus brute force: " + radiusMm + ", point " + i);
                 }
-                Check(spatial.IsIsolated(ids[i], points[i]) == expected, "Spatial index versus brute force: " + i);
             }
         }
 
@@ -160,24 +243,26 @@ namespace SmartGroupClashes
                 Check(!PipeExclusionRule.Matches(Pipe(20, double.MaxValue), Pipe(20, -double.MaxValue)),
                     "Distance overflow must not match");
 
-                Check(PipeExclusionRule.Matches(Pipe(20), null, true, true), "Isolated small pipe versus any other element");
-                Check(PipeExclusionRule.Matches(null, Pipe(20), true, false, true), "Isolated small pipe on second side");
-                Check(PipeExclusionRule.Matches(Pipe(20), Pipe(100, 10000), true, true), "Distant second pipe may be large");
-                Check(PipeExclusionRule.Matches(Pipe(20), Pipe(20, 10000), true, true, true), "Distant isolated pipes");
-                Check(!PipeExclusionRule.Matches(Pipe(20, double.NaN, double.NaN, double.NaN), null, true, true),
+                Check(SingleMatches(Pipe(20), null, true), "Isolated small pipe versus element of VIS model");
+                Check(SingleMatches(null, Pipe(20), false, true), "Isolated small pipe on second side");
+                Check(SingleMatches(Pipe(20), Pipe(100, 10000), true), "Distant second pipe may be large");
+                Check(SingleMatches(Pipe(20), Pipe(20, 10000), true, true), "Distant isolated pipes");
+                Check(!SingleMatches(Pipe(20, double.NaN, double.NaN, double.NaN), null, true),
                     "Single pipe requires geometry to check neighbors");
-                Check(!PipeExclusionRule.Matches(Pipe(50), null, true, true), "Single diameter exactly 50 is excluded");
-                Check(!PipeExclusionRule.Matches(Pipe(100), Pipe(50), true, true, true), "No small pipes");
-                Check(!PipeExclusionRule.Matches(null, null, true), "No known pipes");
-                Check(!PipeExclusionRule.Matches(Pipe(0), null, true), "Single zero diameter");
-                Check(!PipeExclusionRule.Matches(Pipe(double.NaN), null, true), "Single invalid diameter");
-                Check(!PipeExclusionRule.Matches(Pipe(double.PositiveInfinity), null, true), "Single infinite diameter");
+                Check(!SingleMatches(Pipe(50), null, true), "Single diameter exactly 50 is excluded");
+                Check(!SingleMatches(Pipe(100), Pipe(50), true, true), "No small pipes");
+                Check(!SingleMatches(null, null), "No known pipes");
+                Check(!SingleMatches(Pipe(0), null, true), "Single zero diameter");
+                Check(!SingleMatches(Pipe(double.NaN), null, true), "Single invalid diameter");
+                Check(!SingleMatches(Pipe(double.PositiveInfinity), null, true), "Single infinite diameter");
                 Check(!PipeExclusionRule.Matches(Pipe(20), null, false), "Original pair mode requires both pipes");
                 Check(!PipeExclusionRule.Matches(Pipe(20), Pipe(20, 10000), false), "Original mode retains distance check");
-                Check(!PipeExclusionRule.Matches(Pipe(20), null, true), "Unverified isolation must not approve");
-                Check(!PipeExclusionRule.Matches(Pipe(20), Pipe(500, 100), true, false, false), "Large neighbor blocks small pipe");
-                Check(!PipeExclusionRule.Matches(Pipe(20), Pipe(20, 100), true, false, false),
+                Check(!SingleMatches(Pipe(20), null), "Unverified isolation must not approve");
+                Check(!SingleMatches(Pipe(20), Pipe(500, 100)), "Large neighbor blocks small pipe");
+                Check(!SingleMatches(Pipe(20), Pipe(20, 100)),
                     "Small neighbor blocks single mode without fallback to pair rule");
+                ModelNameTests();
+                DistanceSettingsTests();
                 NeighborhoodTests();
 
                 Console.WriteLine("PASS: " + _checks + " checks");

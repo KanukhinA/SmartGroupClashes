@@ -2,11 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
 using System.Windows;
-using System.Windows.Data;
 using IOPath = System.IO.Path;
 
 using Autodesk.Navisworks.Api;
@@ -27,6 +27,7 @@ namespace SmartGroupClashes.ViewModels
         private bool _keepExistingGroups;
         private bool _skipFixedGroups = true;
         private bool _includeSinglePipeExclusion = true;
+        private string _exclusionDistanceMmText = PipeExclusionRule.DefaultDistanceMm.ToString(CultureInfo.InvariantCulture);
         private bool _analyzeNewStatus = true;
         private bool _analyzeActiveStatus = true;
         private bool _analyzeReviewedStatus = true;
@@ -47,13 +48,20 @@ namespace SmartGroupClashes.ViewModels
         private bool _areComboBoxesEnabled;
         private bool _isApplyingSettings;
         private string _loadedSettingsDocumentKey;
+        private string _testsLoadError = string.Empty;
+        private string _testsLoadStatus = string.Empty;
+        private Document _subscribedDocument;
+        private DocumentClashTests _subscribedTests;
+        private bool _refreshPending;
+        private bool _isReloading;
 
-        private ICollectionView _clashTestsView;
+        private readonly List<ClashTestTreeNode> _allTreeRoots = new List<ClashTestTreeNode>();
 
         /// <summary>Создаёт ViewModel, заполняет коллекции и подписывается на события документа.</summary>
         public SmartGroupClashesViewModel()
         {
             ClashTests = new ObservableCollection<ClashTestItemViewModel>();
+            ClashTestTree = new ObservableCollection<ClashTestTreeNode>();
             GroupByList = new ObservableCollection<GroupingModeOption>();
             GroupThenList = new ObservableCollection<GroupingModeOption>();
             GroupThirdList = new ObservableCollection<GroupingModeOption>();
@@ -66,21 +74,38 @@ namespace SmartGroupClashes.ViewModels
 
             GroupCommand = new RelayCommand(ExecuteGroup, () => CanGroup);
             UngroupCommand = new RelayCommand(ExecuteUngroup, () => CanUngroup);
-            ExcludePipeClashesCommand = new RelayCommand(ExecuteExcludePipeClashes, () => CanUngroup);
+            ExcludePipeClashesCommand = new RelayCommand(ExecuteExcludePipeClashes,
+                () => CanUngroup && IsExclusionDistanceValid);
             SaveSettingsCommand = new RelayCommand(ExecuteSaveSettings);
             SelectAllTestsCommand = new RelayCommand(ExecuteSelectAll);
             ClearSelectionCommand = new RelayCommand(ExecuteClearSelection);
+            ExpandTreeCommand = new RelayCommand(() => SetTreeExpanded(true));
+            CollapseTreeCommand = new RelayCommand(() => SetTreeExpanded(false));
+            RefreshTestsCommand = new RelayCommand(RegisterChanges);
 
             RegisterChanges();
 
-            _clashTestsView = CollectionViewSource.GetDefaultView(ClashTests);
-            _clashTestsView.Filter = FilterClashTests;
         }
 
         #region Коллекции
 
         /// <summary>Тесты коллизий текущего документа.</summary>
         public ObservableCollection<ClashTestItemViewModel> ClashTests { get; }
+
+        /// <summary>Видимые ветви проверок, сгруппированных по паре разделов в начале имени.</summary>
+        public ObservableCollection<ClashTestTreeNode> ClashTestTree { get; }
+
+        public string TestsLoadError
+        {
+            get { return _testsLoadError; }
+            private set { SetProperty(ref _testsLoadError, value); }
+        }
+
+        public string TestsLoadStatus
+        {
+            get { return _testsLoadStatus; }
+            private set { SetProperty(ref _testsLoadStatus, value); }
+        }
 
         /// <summary>Варианты режима «Группировать по».</summary>
         public ObservableCollection<GroupingModeOption> GroupByList { get; }
@@ -106,7 +131,7 @@ namespace SmartGroupClashes.ViewModels
             {
                 if (SetProperty(ref _filterText, value))
                 {
-                    _clashTestsView?.Refresh();
+                    RefreshClashTestTree();
                 }
             }
         }
@@ -176,7 +201,7 @@ namespace SmartGroupClashes.ViewModels
             }
         }
 
-        /// <summary>Утверждать коллизию малой трубы ВИС, если в радиусе 200 мм нет других труб.</summary>
+        /// <summary>Утверждать коллизию изолированной малой трубы ВИС с элементом модели ВИС.</summary>
         public bool IncludeSinglePipeExclusion
         {
             get { return _includeSinglePipeExclusion; }
@@ -185,6 +210,30 @@ namespace SmartGroupClashes.ViewModels
                 if (SetProperty(ref _includeSinglePipeExclusion, value)) OnSettingChanged();
             }
         }
+
+        /// <summary>Общий порог расстояния для пары труб и радиуса поиска соседей, в миллиметрах.</summary>
+        public string ExclusionDistanceMmText
+        {
+            get { return _exclusionDistanceMmText; }
+            set
+            {
+                if (SetProperty(ref _exclusionDistanceMmText, value))
+                {
+                    OnPropertyChanged(nameof(IsExclusionDistanceValid));
+                    OnPropertyChanged(nameof(ExclusionDistanceError));
+                    ExcludePipeClashesCommand?.RaiseCanExecuteChanged();
+                    OnSettingChanged();
+                }
+            }
+        }
+
+        public bool IsExclusionDistanceValid
+        {
+            get { double distance; return PipeExclusionRule.TryParseDistanceMm(_exclusionDistanceMmText, out distance); }
+        }
+
+        public string ExclusionDistanceError => IsExclusionDistanceValid ? string.Empty
+            : "Введите положительное расстояние в мм, например 200 или 150,5.";
 
         /// <summary>Группировать пересечения со статусом «Новые».</summary>
         public bool AnalyzeNewStatus
@@ -401,6 +450,10 @@ namespace SmartGroupClashes.ViewModels
         /// <summary>Команда «Снять выбор».</summary>
         public RelayCommand ClearSelectionCommand { get; }
 
+        public RelayCommand ExpandTreeCommand { get; }
+        public RelayCommand CollapseTreeCommand { get; }
+        public RelayCommand RefreshTestsCommand { get; }
+
         #endregion
 
         #region Подписка на события документа
@@ -408,47 +461,84 @@ namespace SmartGroupClashes.ViewModels
         /// <summary>Подписывается на изменения документа и обновляет данные в UI.</summary>
         private void RegisterChanges()
         {
+            UnRegisterChanges();
+            NavisworksApplication.MainDocumentChanged += DocumentSource_Changed;
+            NavisworksApplication.Idle += Application_Idle;
             try
             {
-                NavisworksApplication.MainDocument.Database.Changed += DocumentClashTests_Changed;
-                DocumentClashTests dct = NavisworksApplication.MainDocument.GetClash().TestsData;
-                dct.Changed += DocumentClashTests_Changed;
+                _subscribedDocument = NavisworksApplication.MainDocument;
+                if (_subscribedDocument != null)
+                {
+                    _subscribedDocument.FileNameChanged += DocumentSource_Changed;
+                    _subscribedDocument.Models.CollectionChanged += DocumentSource_Changed;
+                    _subscribedDocument.Database.Changed += DocumentClashTests_Changed;
+                    _subscribedTests = _subscribedDocument.GetClash()?.TestsData;
+                    if (_subscribedTests != null) _subscribedTests.Changed += DocumentClashTests_Changed;
+                }
             }
             catch (Exception)
             {
                 // Документ ещё не загружен
             }
 
-            GetClashTests();
-            CheckPlugin();
-            LoadComboBox();
-            TryLoadSettingsForCurrentDocument();
+            ReloadPanel();
         }
 
         /// <summary>Отписывается от событий документа.</summary>
         private void UnRegisterChanges()
         {
+            NavisworksApplication.MainDocumentChanged -= DocumentSource_Changed;
+            NavisworksApplication.Idle -= Application_Idle;
             try
             {
-                NavisworksApplication.MainDocument.Database.Changed -= DocumentClashTests_Changed;
-                DocumentClashTests dct = NavisworksApplication.MainDocument.GetClash().TestsData;
-                dct.Changed -= DocumentClashTests_Changed;
+                if (_subscribedDocument != null)
+                {
+                    _subscribedDocument.FileNameChanged -= DocumentSource_Changed;
+                    _subscribedDocument.Models.CollectionChanged -= DocumentSource_Changed;
+                    _subscribedDocument.Database.Changed -= DocumentClashTests_Changed;
+                }
             }
             catch (Exception)
             {
                 // Игнорируем ошибку при отписке
             }
+            try { if (_subscribedTests != null) _subscribedTests.Changed -= DocumentClashTests_Changed; }
+            catch (Exception) { }
+            _subscribedDocument = null;
+            _subscribedTests = null;
         }
 
         /// <summary>Обработчик изменений в документе: обновляет все данные.</summary>
         private void DocumentClashTests_Changed(object sender, EventArgs e)
         {
-            GetClashTests();
-            CheckPlugin();
-            LoadComboBox();
-            TryLoadSettingsForCurrentDocument();
-            _clashTestsView?.Refresh();
-            UpdateSelectionSummary();
+            ReloadPanel();
+        }
+
+        private void DocumentSource_Changed(object sender, EventArgs e)
+        {
+            _refreshPending = true;
+        }
+
+        private void Application_Idle(object sender, EventArgs e)
+        {
+            if (!_refreshPending || _isReloading) return;
+            _refreshPending = false;
+            RegisterChanges();
+        }
+
+        private void ReloadPanel()
+        {
+            if (_isReloading) { _refreshPending = true; return; }
+            _isReloading = true;
+            try
+            {
+                GetClashTests();
+                CheckPlugin();
+                LoadComboBox();
+                TryLoadSettingsForCurrentDocument();
+                UpdateSelectionSummary();
+            }
+            finally { _isReloading = false; }
         }
 
         #endregion
@@ -458,32 +548,45 @@ namespace SmartGroupClashes.ViewModels
         /// <summary>Загружает тесты коллизий из текущего документа.</summary>
         private void GetClashTests()
         {
+            var selectedKeys = new HashSet<string>(ClashTests.Where(t => t.IsSelected).Select(t => t.SelectionKey),
+                StringComparer.Ordinal);
+            var expanded = _allTreeRoots.SelectMany(root => root.AllNodes()).Where(node => node.IsGroup)
+                .ToDictionary(node => node.Key, node => node.IsExpanded);
+            foreach (ClashTestTreeNode root in _allTreeRoots) root.Dispose();
+            _allTreeRoots.Clear();
             foreach (var item in ClashTests)
             {
                 item.PropertyChanged -= ClashTestItem_PropertyChanged;
             }
 
             ClashTests.Clear();
+            TestsLoadError = string.Empty;
 
             try
             {
-                DocumentClashTests dct = NavisworksApplication.MainDocument.GetClash().TestsData;
-                foreach (SavedItem savedItem in dct.Tests)
+                DocumentClashTests dct = NavisworksApplication.MainDocument?.GetClash()?.TestsData;
+                ClashTestCatalog catalog = ClashTestCatalog.Read(dct?.Tests, selectedKeys);
+                foreach (ClashTestItemViewModel vm in catalog.Items)
                 {
-                    if (savedItem.GetType() == typeof(ClashTest))
-                    {
-                        var vm = new ClashTestItemViewModel(savedItem as ClashTest);
-                        vm.PropertyChanged += ClashTestItem_PropertyChanged;
-                        ClashTests.Add(vm);
-                    }
+                    vm.PropertyChanged += ClashTestItem_PropertyChanged;
+                    ClashTests.Add(vm);
                 }
+                if (catalog.Errors.Count > 0)
+                    TestsLoadError = $"Не удалось прочитать проверок: {catalog.Errors.Count}. {catalog.Errors[0]}";
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                // Документ не открыт или нет тестов
+                TestsLoadError = "Ошибка загрузки проверок: " + ex.Message;
             }
 
-            _clashTestsView?.Refresh();
+            _allTreeRoots.AddRange(ClashTestTreeBuilder.Build(ClashTests));
+            foreach (ClashTestTreeNode node in _allTreeRoots.SelectMany(root => root.AllNodes()).Where(node => node.IsGroup))
+            {
+                bool wasExpanded;
+                if (expanded.TryGetValue(node.Key, out wasExpanded)) node.IsExpanded = wasExpanded;
+            }
+            RefreshClashTestTree();
+            UpdateSelectionSummary();
         }
 
         /// <summary>Заполняет комбобоксы режимов группировки.</summary>
@@ -552,21 +655,20 @@ namespace SmartGroupClashes.ViewModels
 
         #region Фильтрация
 
-        /// <summary>Фильтр списка тестов: совпадение по имени с учётом текста поиска.</summary>
-        private bool FilterClashTests(object item)
+        /// <summary>Фильтрует листья дерева, сохраняя их родительские группы и выбранность скрытых тестов.</summary>
+        private void RefreshClashTestTree()
         {
-            if (string.IsNullOrWhiteSpace(_filterText))
-            {
-                return true;
-            }
+            ClashTestTree.Clear();
+            foreach (ClashTestTreeNode root in _allTreeRoots)
+                if (root.ApplyFilter((_filterText ?? string.Empty).Trim())) ClashTestTree.Add(root);
+            TestsLoadStatus = $"Загружено проверок: {ClashTests.Count}; показано: "
+                + ClashTestTree.Sum(root => root.VisibleTests().Count());
+        }
 
-            var clashTest = item as ClashTestItemViewModel;
-            if (clashTest == null)
-            {
-                return false;
-            }
-
-            return clashTest.DisplayName.IndexOf(_filterText.Trim(), StringComparison.OrdinalIgnoreCase) >= 0;
+        private void SetTreeExpanded(bool expanded)
+        {
+            foreach (ClashTestTreeNode node in _allTreeRoots.SelectMany(root => root.AllNodes()).Where(node => node.IsGroup))
+                node.IsExpanded = expanded;
         }
 
         #endregion
@@ -834,24 +936,33 @@ namespace SmartGroupClashes.ViewModels
 
         private void ExecuteExcludePipeClashes()
         {
-            var selectedTests = ClashTests.Where(t => t.IsSelected).Select(t => t.ClashTest).ToList();
+            double distanceMm;
+            if (!PipeExclusionRule.TryParseDistanceMm(_exclusionDistanceMmText, out distanceMm))
+            {
+                MessageBox.Show(ExclusionDistanceError, "SmartGroupClashes",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+            var selectedItems = ClashTests.Where(t => t.IsSelected).ToList();
+            var selectedTests = selectedItems.Select(t => t.ClashTest).ToList();
             if (selectedTests.Count == 0) return;
-            var selectedGuids = new HashSet<Guid>(selectedTests.Select(t => t.Guid));
+            var selectedKeys = new HashSet<string>(selectedItems.Select(t => t.SelectionKey), StringComparer.Ordinal);
 
             UnRegisterChanges();
             try
             {
                 PipeClashExclusion.Summary summary = PipeClashExclusion.Apply(
-                    NavisworksApplication.MainDocument, selectedTests, IncludeSinglePipeExclusion);
+                    NavisworksApplication.MainDocument, selectedTests, IncludeSinglePipeExclusion, distanceMm);
                 MessageBox.Show(
-                    $"Проверено коллизий: {summary.Examined}\n"
+                    $"Допустимое расстояние: {distanceMm:G} мм\n"
+                    + $"Проверено коллизий: {summary.Examined}\n"
                     + $"Переведено в «Утверждено»: {summary.Approved}\n"
                     + $"Уже утверждены или устранены: {summary.AlreadyClosed}\n"
                     + $"Пропущено из-за неполных данных: {summary.MissingData}\n"
                     + $"Не соответствуют правилу: {summary.OutsideRule}\n\n"
                     + summary.DescribeSkips() + "\n\n"
                     + (IncludeSinglePipeExclusion
-                        ? "Труба ВИС меньше 50 мм: в радиусе 200 мм нет других труб любого диаметра. Проверены центры габаритов труб всей модели."
+                        ? $"Труба ВИС меньше 50 мм и второй элемент из модели ВИС: в радиусе {distanceMm:G} мм нет других труб любого диаметра. Проверены центры габаритов труб всей модели."
                         : "Расстояние рассчитано между центрами габаритов труб, а не между осями."),
                     "Исключение труб ВИС", MessageBoxButton.OK, MessageBoxImage.Information);
             }
@@ -863,7 +974,7 @@ namespace SmartGroupClashes.ViewModels
             finally
             {
                 RegisterChanges();
-                foreach (var item in ClashTests) item.IsSelected = selectedGuids.Contains(item.ClashTest.Guid);
+                foreach (var item in ClashTests) item.IsSelected = selectedKeys.Contains(item.SelectionKey);
                 CheckPlugin();
             }
         }
@@ -871,19 +982,20 @@ namespace SmartGroupClashes.ViewModels
         /// <summary>Сохраняет настройки принудительно.</summary>
         private void ExecuteSaveSettings()
         {
+            if (!IsExclusionDistanceValid)
+            {
+                MessageBox.Show(ExclusionDistanceError, "SmartGroupClashes",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
             SaveCurrentSettingsForDocument(force: true);
         }
 
         /// <summary>Выделяет все видимые тесты.</summary>
         private void ExecuteSelectAll()
         {
-            foreach (var item in ClashTests)
-            {
-                if (_clashTestsView == null || _clashTestsView.Filter == null || _clashTestsView.Filter(item))
-                {
-                    item.IsSelected = true;
-                }
-            }
+            foreach (INumberedClashTestItem item in ClashTestTree.SelectMany(root => root.VisibleTests()))
+                item.IsSelected = true;
         }
 
         /// <summary>Снимает выбор со всех тестов.</summary>
@@ -950,6 +1062,9 @@ namespace SmartGroupClashes.ViewModels
             string cfgPath = GetSettingsFilePath(documentKey);
             if (!File.Exists(cfgPath))
             {
+                _isApplyingSettings = true;
+                try { ExclusionDistanceMmText = PipeExclusionRule.DefaultDistanceMm.ToString(CultureInfo.InvariantCulture); }
+                finally { _isApplyingSettings = false; }
                 _loadedSettingsDocumentKey = documentKey;
                 return;
             }
@@ -961,6 +1076,9 @@ namespace SmartGroupClashes.ViewModels
                 KeepExistingGroups = ParseBool(map, "KeepExistingGroups", false);
                 SkipFixedGroups = ParseBool(map, "SkipFixedGroups", true);
                 IncludeSinglePipeExclusion = ParseBool(map, "IncludeSinglePipeExclusion", true);
+                ExclusionDistanceMmText = map.ContainsKey("ExclusionDistanceMm")
+                    ? ParseText(map, "ExclusionDistanceMm")
+                    : PipeExclusionRule.DefaultDistanceMm.ToString(CultureInfo.InvariantCulture);
                 AnalyzeNewStatus = ParseBool(map, "AnalyzeStatusNew", true);
                 AnalyzeActiveStatus = ParseBool(map, "AnalyzeStatusActive", true);
                 AnalyzeReviewedStatus = ParseBool(map, "AnalyzeStatusReviewed", true);
@@ -1004,6 +1122,9 @@ namespace SmartGroupClashes.ViewModels
                 return;
             }
 
+            double distanceMm;
+            if (!PipeExclusionRule.TryParseDistanceMm(_exclusionDistanceMmText, out distanceMm)) return;
+
             string documentKey = GetCurrentDocumentSettingsKey();
             if (string.IsNullOrWhiteSpace(documentKey))
             {
@@ -1029,6 +1150,7 @@ namespace SmartGroupClashes.ViewModels
                     "KeepExistingGroups=" + (_keepExistingGroups ? "true" : "false"),
                     "SkipFixedGroups=" + (_skipFixedGroups ? "true" : "false"),
                     "IncludeSinglePipeExclusion=" + (_includeSinglePipeExclusion ? "true" : "false"),
+                    "ExclusionDistanceMm=" + distanceMm.ToString("R", CultureInfo.InvariantCulture),
                     "AnalyzeStatusNew=" + (_analyzeNewStatus ? "true" : "false"),
                     "AnalyzeStatusActive=" + (_analyzeActiveStatus ? "true" : "false"),
                     "AnalyzeStatusReviewed=" + (_analyzeReviewedStatus ? "true" : "false"),

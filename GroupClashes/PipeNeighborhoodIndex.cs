@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace SmartGroupClashes
 {
-    /// <summary>Поиск других труб по центрам габаритов в радиусе 200 мм, включая границу.</summary>
+    /// <summary>Поиск других труб по центрам габаритов в заданном радиусе, включая границу.</summary>
     internal sealed class PipeNeighborhoodIndex<T> where T : class
     {
         private sealed class Entry
@@ -15,7 +15,17 @@ namespace SmartGroupClashes
         private readonly Dictionary<Tuple<long, long, long>, List<Entry>> _cells =
             new Dictionary<Tuple<long, long, long>, List<Entry>>();
         private readonly HashSet<T> _items = new HashSet<T>();
+        private readonly double _radiusMm;
+        private readonly double _radiusSquared;
         internal bool IsComplete { get; private set; } = true;
+
+        internal PipeNeighborhoodIndex(double radiusMm = PipeExclusionRule.DefaultDistanceMm)
+        {
+            if (!PipeExclusionRule.IsValidDistanceMm(radiusMm))
+                throw new ArgumentOutOfRangeException(nameof(radiusMm), "Расстояние должно быть положительным конечным числом.");
+            _radiusMm = radiusMm;
+            _radiusSquared = radiusMm * radiusMm;
+        }
 
         internal void MarkIncomplete()
         {
@@ -49,7 +59,6 @@ namespace SmartGroupClashes
         {
             Tuple<long, long, long> cell;
             if (!IsComplete || !Contains(item) || !TryGetCell(center, out cell)) return false;
-            double radiusSquared = PipeExclusionRule.CenterDistanceLimitMm * PipeExclusionRule.CenterDistanceLimitMm;
             // Размер ячейки равен радиусу: достаточно текущей и 26 соседних ячеек.
             for (int x = -1; x <= 1; x++)
                 for (int y = -1; y <= 1; y++)
@@ -64,19 +73,19 @@ namespace SmartGroupClashes
                             double dx = center.X - entry.Center.X;
                             double dy = center.Y - entry.Center.Y;
                             double dz = center.Z - entry.Center.Z;
-                            if (dx * dx + dy * dy + dz * dz <= radiusSquared) return false;
+                            if (dx * dx + dy * dy + dz * dz <= _radiusSquared) return false;
                         }
                     }
             return true;
         }
 
-        private static bool TryGetCell(PipeExclusionCandidate center, out Tuple<long, long, long> cell)
+        private bool TryGetCell(PipeExclusionCandidate center, out Tuple<long, long, long> cell)
         {
             cell = null;
             if (!PipeExclusionRule.HasValidCenter(center)) return false;
-            double x = Math.Floor(center.X / PipeExclusionRule.CenterDistanceLimitMm);
-            double y = Math.Floor(center.Y / PipeExclusionRule.CenterDistanceLimitMm);
-            double z = Math.Floor(center.Z / PipeExclusionRule.CenterDistanceLimitMm);
+            double x = Math.Floor(center.X / _radiusMm);
+            double y = Math.Floor(center.Y / _radiusMm);
+            double z = Math.Floor(center.Z / _radiusMm);
             // Запас исключает переполнение при переборе соседних ячеек.
             if (x <= long.MinValue + 1024d || x >= long.MaxValue - 1024d
                 || y <= long.MinValue + 1024d || y >= long.MaxValue - 1024d

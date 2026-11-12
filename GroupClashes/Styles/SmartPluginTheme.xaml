@@ -383,6 +383,14 @@
               <Setter TargetName="Mark" Property="BorderBrush" Value="{StaticResource PluginBrush.Primary}" />
               <Setter TargetName="CheckGlyph" Property="Visibility" Value="Visible" />
             </Trigger>
+            <Trigger Property="IsChecked" Value="{x:Null}">
+              <Setter TargetName="Mark" Property="Background" Value="{StaticResource PluginBrush.Primary}" />
+              <Setter TargetName="Mark" Property="BorderBrush" Value="{StaticResource PluginBrush.Primary}" />
+              <Setter TargetName="CheckGlyph" Property="Data" Value="M 1,5 L 11,5 L 11,7 L 1,7 Z" />
+              <Setter TargetName="CheckGlyph" Property="Fill" Value="{StaticResource PluginBrush.OnPrimary}" />
+              <Setter TargetName="CheckGlyph" Property="StrokeThickness" Value="0" />
+              <Setter TargetName="CheckGlyph" Property="Visibility" Value="Visible" />
+            </Trigger>
             <Trigger Property="IsMouseOver" Value="True">
               <Setter TargetName="Mark" Property="BorderBrush" Value="{StaticResource PluginBrush.Primary}" />
             </Trigger>

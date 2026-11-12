@@ -286,6 +286,8 @@
     <Compile Include="ViewModels\ViewModelBase.cs" />
     <Compile Include="ViewModels\RelayCommand.cs" />
     <Compile Include="ViewModels\ClashTestItemViewModel.cs" />
+    <Compile Include="ViewModels\ClashTestTreeNode.cs" />
+    <Compile Include="ViewModels\ClashTestCatalog.cs" />
     <Compile Include="ViewModels\SmartGroupClashesViewModel.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
